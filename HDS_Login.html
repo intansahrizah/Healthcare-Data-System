@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Data Sharing</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: url('https://gov-web-sing.s3.ap-southeast-1.amazonaws.com/uploads/2023/1/Wordpress-featured-images-48-1672795987342.jpg') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .login-container {
+            background-color: rgba(83, 80, 80, 0.7);
+            padding: 40px;
+            border-radius: 10px;
+            width: 400px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: #4fc3f7;
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .tagline {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ffffff;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4fc3f7;
+        }
+
+        input {
+            width: 95%;
+            padding: 12px;
+            border: 1px solid #4fc3f7;
+            border-radius: 5px;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4fc3f7;
+            color: #01579b;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #29b6f6;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #b3e5fc;
+        }
+        
+        .error-message {
+            color: #ff6b6b;
+            text-align: center;
+            margin-bottom: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Healthcare Data Sharing</h1>
+        <p class="tagline">Secure access to your medical records</p>
+        
+        <div id="errorMessage" class="error-message"></div>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <label>Email:</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+            </div>
+            
+            <div class="input-group">
+                <label>Password:</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+            </div>
+            
+            <div class="forgot-password">
+                <a href="#">Forgot Password?</a>
+            </div>
+            
+            <button type="submit" id="loginBtn">Login</button>
+        </form>
+        
+        <div class="footer">
+            <p>© 2023 Healthcare Data Sharing. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const loginBtn = document.getElementById('loginBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Simple user database (in a real app, this would be server-side)
+            const validUsers = [ //guna switch
+                { email: 'admin@medical.com', password: 'admin123' },
+                { email: 'doctor@medical.com', password: 'doctor123' },
+                { email: 'patient@medical.com', password: 'patient123' }
+            ];
+            
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Reset error message
+                errorMessage.style.display = 'none';
+                
+                // Get input values
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
+                
+                // Simple validation
+                if (!email || !password) {
+                    showError('Please enter both email and password');
+                    return;
+                }
+
+                // Check for user exits
+                const user = validUsers.find(user => user.email === email && user.password === password);
+                
+                if (user) {
+                    // Redirect based on email
+                    switch(email) {
+                        case 'admin@medical.com':
+                            window.location.href = 'HDS_HomePage.html';
+                            break;
+                        case 'doctor@medical.com':
+                            window.location.href = 'HDS_Dashboard.html';
+                            break;
+                        default:
+                            showError('No page defined for this user');
+                    }
+                } else {
+                    showError('Invalid email or password')
+                }
+            });
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
