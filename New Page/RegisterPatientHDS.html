@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthCare - Patient Management System</title>
+    <link rel="stylesheet" href="registerPatientDesign.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="header-logo">
+            <h1>HealthCare</h1>
+            <div class="subtitle">Patient Management System</div>
+        </div>
+        <nav class="nav-menu">
+            <a href="#" class="nav-item active">
+                <div class="nav-icon">👥</div>
+                <span>Patients</span>
+            </a>
+            <a href="#" class="nav-item">
+                <div class="nav-icon">📅</div>
+                <span>Appointment</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="top-bar">
+            <div class="page-title">Register New Patient</div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="content-area">
+            <div class="form-container">
+                <div class="success-message" id="successMessage">
+                    Patient registered successfully!
+                </div>
+
+                <form id="patientForm" onsubmit="registerPatient(event)">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input 
+                            type="text" 
+                            id="fullName" 
+                            name="fullName" 
+                            placeholder="Enter patient's full name" 
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="icNumber">IC Number</label>
+                        <input 
+                            type="text" 
+                            id="icNumber" 
+                            name="icNumber" 
+                            placeholder="eg. 000000-00-0000" 
+                            pattern="[0-9]{6}-[0-9]{2}-[0-9]{4}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                placeholder="patient@example.com" 
+                                required
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input 
+                                type="tel" 
+                                id="phone" 
+                                name="phone" 
+                                placeholder="eg. 0123456789" 
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <textarea 
+                            id="address" 
+                            name="address" 
+                            placeholder="Full residential address" 
+                            required
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="register-btn">Register Patient</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+     <script src="jsRegisterPatient.js"></script>
+</body>
+</html>
