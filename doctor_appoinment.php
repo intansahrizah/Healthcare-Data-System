@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Healthcare Data Sharing - Doctor Appointments</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
             --primary: #3498db;
@@ -39,69 +40,57 @@
 
          /* Sidebar Styles */
         .sidebar {
-            width: 280px;
-            background: linear-gradient(135deg, var(--secondary) 0%, #1a252f 100%);
-            color: var(--white);
-            padding: 2rem 0;
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 10;
+            width: 250px;
+            background-color: var(--secondary);
+            color: white;
+            padding: 30px 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
         }
 
         .logo {
             text-align: center;
-            padding: 0 2rem 2rem;
+            padding: 0 20px 30px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 2rem;
+            margin-bottom: 30px;
         }
 
         .logo h1 {
-            font-size: 1.8rem;
+            font-size: 24px;
             font-weight: 600;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(to right, var(--white), var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
         }
 
         .logo p {
-            font-size: 0.9rem;
+            font-size: 14px;
             opacity: 0.8;
-            letter-spacing: 1px;
         }
 
         .nav-menu {
-            padding: 0 1.5rem;
+            padding: 0 20px;
         }
 
         .nav-item {
-            margin-bottom: 0.8rem;
+            margin-bottom: 15px;
             list-style: none;
         }
 
         .nav-item a {
             display: flex;
             align-items: center;
-            color: rgba(255, 255, 255, 0.8);
+            color: white;
             text-decoration: none;
-            padding: 0.8rem 1.2rem;
-            border-radius: 6px;
-            transition: var(--transition);
-            font-size: 0.95rem;
+            padding: 12px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
         }
 
-        .nav-item a:hover, 
-        .nav-item a.active {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: var(--white);
-            transform: translateX(5px);
+        .nav-item a:hover, .nav-item a.active {
+            background-color: var(--primary);
         }
 
         .nav-item i {
-            margin-right: 12px;
-            font-size: 1.1rem;
-            width: 20px;
-            text-align: center;
+            margin-right: 10px;
+            font-size: 18px;
         }
         
         /* Main Content Styles */
@@ -115,11 +104,14 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
         }
 
         .header h2 {
             font-size: 28px;
             color: #2c3e50;
+            margin: 0;
         }
 
         .search-bar {
@@ -129,64 +121,24 @@
 
         .search-bar input {
             flex: 1;
-            padding: 10px 15px;
+            padding: 12px 15px;
             border: 1px solid #ddd;
             border-radius: 5px 0 0 5px;
             font-size: 14px;
         }
 
         .search-bar button {
-            padding: 10px 15px;
+            padding: 12px 15px;
             background-color: #3498db;
             color: white;
             border: none;
             border-radius: 0 5px 5px 0;
             cursor: pointer;
-        }
-
-        .appointment-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
             transition: background-color 0.3s;
         }
 
-        .btn:hover {
+        .search-bar button:hover {
             background-color: #2980b9;
-        }
-
-        .btn-success {
-            background-color: #2ecc71;
-        }
-
-        .btn-success:hover {
-            background-color: #27ae60;
-        }
-
-        .btn-danger {
-            background-color: #e74c3c;
-        }
-
-        .btn-danger:hover {
-            background-color: #c0392b;
-        }
-
-        .btn-secondary {
-            background-color: #95a5a6;
-        }
-
-        .btn-secondary:hover {
-            background-color: #7f8c8d;
         }
 
         .appointment-table-container {
@@ -194,6 +146,7 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-top: 20px;
         }
 
         .appointment-table {
@@ -213,13 +166,20 @@
             background-color: #f8f9fa;
             font-weight: 600;
             color: #2c3e50;
+            position: sticky;
+            top: 0;
+        }
+
+        .appointment-table tr:hover {
+            background-color: #f5f7fa;
         }
 
         .status-badge {
-            padding: 3px 8px;
+            padding: 5px 10px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
+            display: inline-block;
         }
 
         .status-scheduled {
@@ -242,18 +202,53 @@
             color: #0c5460;
         }
 
-        .action-btn {
-            padding: 5px 10px;
-            margin-right: 5px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
         }
 
-        .action-btn:hover {
-            background-color: #e9ecef;
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .view-btn {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        
+        .view-btn:hover {
+            background-color: #2980b9;
         }
 
         /* Modal Styles */
@@ -300,43 +295,6 @@
             color: #7f8c8d;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #2c3e50;
-        }
-
-        .form-group input, 
-        .form-group textarea, 
-        .form-group select {
-            width: 100%;
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 20px;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-        }
-
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
         /* Message Styles */
         .alert {
             padding: 15px;
@@ -355,6 +313,70 @@
             background-color: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Patient Details Modal */
+        #patientModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #patientModal .modal-content {
+            width: 700px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .patient-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .detail-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .detail-card h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .detail-item {
+            margin-bottom: 15px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 3px solid var(--primary);
         }
 
         /* Responsive Design */
@@ -376,58 +398,69 @@
                 margin-bottom: 0;
                 white-space: nowrap;
             }
-            .form-row {
+            
+            .appointment-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .action-buttons {
                 flex-direction: column;
-                gap: 0;
             }
         }
 
-        /* New styles for demo */
-        .demo-controls {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
-        
-        .demo-controls h3 {
-            margin-bottom: 15px;
-            color: #2c3e50;
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
         }
-        
-        .demo-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: var(--gray);
+            font-size: 14px;
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>Doctor</h1>
-                <p>Healthcare Data Sharing</p>
+                <h1>Welcome Doctor</h1>
+                <p>Healthcare Management System</p>
             </div>
 
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="#">
+                    <a href="dashboard_doctor.php">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="HDS_PatientPageDoctor.html">
+                    <a href="doctor_appoinment.php" class="active">
                         <i class="fas fa-user-injured"></i>
                         Patients
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="active">
+                    <a href="doctor_calender.php">
                         <i class="fas fa-calendar-check"></i>
                         Appointments
                     </a>
@@ -440,253 +473,245 @@
             <div class="header">
                 <h2>Doctor Appointment Management</h2>
                 <div class="user-profile">
-                    <!-- User profile/notification can be added here -->
+                    <span>Dr. Smith</span>
                 </div>
             </div>
 
-            <!-- Demo controls for testing -->
-            <div class="demo-controls">
-                <h3>Demo Controls</h3>
-                <div class="demo-buttons">
-                    <button class="btn" onclick="addDemoAppointment()">
-                        <i class="fas fa-plus"></i> Add Demo Appointment
-                    </button>
-                    <button class="btn btn-secondary" onclick="clearAppointments()">
-                        <i class="fas fa-trash"></i> Clear Appointments
-                    </button>
-                    <button class="btn btn-success" onclick="showAllAppointments()">
-                        <i class="fas fa-eye"></i> Show All Appointments
-                    </button>
-                </div>
-            </div>
+            <?php
+            // Database connection parameters
+            $servername = "localhost";
+            $username = "root"; // Your MySQL username
+            $password = ""; // Your MySQL password
+            $dbname = "healthcare_system"; // Your database name
+
+            // Create connection
+            $conn = new mysqli($servername, $username, $password, $dbname);
+
+            // Check connection
+            if ($conn->connect_error) {
+                die("Connection failed: " . $conn->connect_error);
+            }
+
+            // Initialize variables
+            $success_message = "";
+            $error_message = "";
+            $appointments = [];
+            $search = "";
+
+            // Handle search
+            if (isset($_GET['search'])) {
+                $search = $conn->real_escape_string($_GET['search']);
+            }
+
+            // Handle appointment actions
+            if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+                if (isset($_POST['confirm_appointment'])) {
+                    $appointment_id = $conn->real_escape_string($_POST['appointment_id']);
+                    $sql = "UPDATE appointments SET status = 'Confirmed' WHERE appointmentId = $appointment_id";
+                    
+                    if ($conn->query($sql)) {
+                        $success_message = "Appointment confirmed successfully!";
+                    } else {
+                        $error_message = "Error confirming appointment: " . $conn->error;
+                    }
+                } 
+                elseif (isset($_POST['cancel_appointment'])) {
+                    $appointment_id = $conn->real_escape_string($_POST['appointmentId']);
+                    $sql = "UPDATE appointments SET status = 'Cancelled' WHERE appointmentId = $appointment_id";
+                    
+                    if ($conn->query($sql)) {
+                        $success_message = "Appointment cancelled successfully!";
+                    } else {
+                        $error_message = "Error cancelling appointment: " . $conn->error;
+                    }
+                } 
+                elseif (isset($_POST['complete_appointment'])) {
+                    $appointment_id = $conn->real_escape_string($_POST['appointment_id']);
+                    $sql = "UPDATE appointments SET status = 'Completed' WHERE appointmentId = $appointment_id";
+                    
+                    if ($conn->query($sql)) {
+                        $success_message = "Appointment marked as completed!";
+                    } else {
+                        $error_message = "Error completing appointment: " . $conn->error;
+                    }
+                }
+            }
+
+            // Fetch appointments from database
+            $sql = "SELECT a.*, patientName as patient_name 
+                    FROM appointments a 
+                    JOIN patients p ON a.patientsId = p.patientsId 
+                    WHERE a.doctorId = 2";  // Assuming doctor ID 2 is Dr. Smith
+
+            if (!empty($search)) {
+                $sql .= " AND (patientName LIKE '%$search%' OR a.reason LIKE '%$search%' OR a.status LIKE '%$search%')";
+            }
+
+            $sql .= " ORDER BY a.appointment_date, a.appointment_time";
+
+            $result = $conn->query($sql);
+
+            if ($result->num_rows > 0) {
+                while($row = $result->fetch_assoc()) {
+                    $appointments[] = $row;
+                }
+            }
+
+            // Close connection
+            $conn->close();
+            ?>
 
             <!-- Display success/error messages -->
-            <div id="messageArea"></div>
+            <?php if (!empty($success_message)): ?>
+                <div class="alert alert-success"><?php echo $success_message; ?></div>
+            <?php endif; ?>
+            
+            <?php if (!empty($error_message)): ?>
+                <div class="alert alert-error"><?php echo $error_message; ?></div>
+            <?php endif; ?>
+
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-label">Total Appointments</div>
+                    <div class="stat-value"><?php echo count($appointments); ?></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Scheduled</div>
+                    <div class="stat-value">
+                        <?php
+                            $scheduled = 0;
+                            foreach ($appointments as $appt) {
+                                if ($appt['status'] == 'Scheduled') $scheduled++;
+                            }
+                            echo $scheduled;
+                        ?>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Confirmed</div>
+                    <div class="stat-value">
+                        <?php
+                            $confirmed = 0;
+                            foreach ($appointments as $appt) {
+                                if ($appt['status'] == 'Confirmed') $confirmed++;
+                            }
+                            echo $confirmed;
+                        ?>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed</div>
+                    <div class="stat-value">
+                        <?php
+                            $completed = 0;
+                            foreach ($appointments as $appt) {
+                                if ($appt['status'] == 'Completed') $completed++;
+                            }
+                            echo $completed;
+                        ?>
+                    </div>
+                </div>
+            </div>
 
             <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Search appointments..." onkeyup="filterAppointments()">
-                <button onclick="filterAppointments()"><i class="fas fa-search"></i></button>
+                <form method="GET" action="doctor_appoinment.php" style="display: flex; width: 100%;">
+                    <input type="text" name="search" placeholder="Search appointments by patient name, reason, or status..." value="<?php echo htmlspecialchars($search); ?>">
+                    <button type="submit"><i class="fas fa-search"></i> Search</button>
+                </form>
             </div>
 
             <div class="appointment-table-container">
-                <h3>My Appointments</h3>
-                <table class="appointment-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Patient</th>
-                            <th>Purpose</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="appointmentsTableBody">
-                        <!-- Appointments will be dynamically inserted here -->
-                    </tbody>
-                </table>
+                <h3>Appointment List</h3>
+                <?php if (count($appointments) > 0): ?>
+                    <table class="appointment-table">
+                        <thead>
+                            <tr>
+                                <th>Patient Name</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($appointments as $appointment): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($appointment['patient_name']); ?></td>
+                                    <td><?php echo date('M j, Y', strtotime($appointment['appointment_date'])); ?></td>
+                                    <td><?php echo date('g:i A', strtotime($appointment['appointment_time'])); ?></td>
+                                    <td><?php echo htmlspecialchars($appointment['reason']); ?></td>
+                                    <td>
+                                        <span class="status-badge status-<?php echo strtolower($appointment['status']); ?>">
+                                            <?php echo $appointment['status']; ?>
+                                        </span>
+                                    </td>
+                                    <td class="action-buttons">
+                                        <?php if ($appointment['status'] == 'Scheduled'): ?>
+                                            <form method="POST" style="display: inline;">
+                                                <input type="hidden" name="appointment_id" value="<?php echo $appointment['appointmentId']; ?>">
+                                                <button type="submit" name="confirm_appointment" class="btn btn-success">Confirm</button>
+                                            </form>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($appointment['status'] != 'Cancelled' && $appointment['status'] != 'Completed'): ?>
+                                            <form method="POST" style="display: inline;">
+                                                <input type="hidden" name="appointment_id" value="<?php echo $appointment['appointmentId']; ?>">
+                                                <button type="submit" name="cancel_appointment" class="btn btn-danger">Cancel</button>
+                                            </form>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($appointment['status'] == 'Confirmed'): ?>
+                                            <form method="POST" style="display: inline;">
+                                                <input type="hidden" name="appointment_id" value="<?php echo $appointment['appointmentId']; ?>">
+                                                <button type="submit" name="complete_appointment" class="btn btn-primary">Complete</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <div class="alert alert-info">
+                        <?php echo empty($search) ? "No appointments found." : "No appointments match your search criteria."; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </main>
     </div>
 
     <script>
-        // Sample appointment data
-        let appointments = [
-            {
-                id: 1,
-                date: '2023-10-15',
-                time: '10:00:00',
-                patient: 'John Doe',
-                purpose: 'Regular Checkup',
-                status: 'Scheduled'
-            },
-            {
-                id: 2,
-                date: '2023-10-16',
-                time: '14:30:00',
-                patient: 'Jane Smith',
-                purpose: 'Follow-up Visit',
-                status: 'Confirmed'
-            },
-            {
-                id: 3,
-                date: '2023-10-17',
-                time: '09:15:00',
-                patient: 'Robert Johnson',
-                purpose: 'Vaccination',
-                status: 'Scheduled'
+        // Function to show patient details
+        function showPatientDetails(patientId) {
+            // In a real application, you would fetch patient details via AJAX
+            // For this example, we'll just show a static modal
+            document.getElementById('patientModal').style.display = 'flex';
+        }
+
+        // Function to close modals
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
             }
+        }
+
+        $blockchain_data = [
+            'appointmentId' => $appointment_id,
+            'patientsId' => $_POST['patientsId'],
+            'appointment_date' => $_POST['date'],
+            'appointment_time' => $_POST['time'],
+            'doctorId' => $_POST['doctorId'],
+            'reason' => $_POST['reason'],
+            'status' => 'scheduled'
         ];
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            renderAppointments();
-        });
-
-        // Render appointments to the table
-        function renderAppointments() {
-            const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = '';
-            
-            if (appointments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No appointments found.</td></tr>';
-                return;
-            }
-            
-            appointments.forEach(appt => {
-                const row = document.createElement('tr');
-                
-                // Format date and time
-                const formattedDate = formatDate(appt.date);
-                const formattedTime = formatTime(appt.time);
-                
-                row.innerHTML = `
-                    <td>${formattedDate} - ${formattedTime}</td>
-                    <td>${appt.patient}</td>
-                    <td>${appt.purpose}</td>
-                    <td><span class="status-badge status-${appt.status.toLowerCase()}">${appt.status}</span></td>
-                    <td>
-                        ${appt.status === 'Scheduled' ? 
-                            `<button class="btn btn-success" onclick="confirmAppointment(${appt.id})">Confirm</button>
-                             <button class="btn btn-danger" onclick="cancelAppointment(${appt.id})">Cancel</button>` : 
-                            '<span>No actions available</span>'
-                        }
-                    </td>
-                `;
-                
-                tbody.appendChild(row);
-            });
-        }
-
-        // Format date as "Oct 15, 2023"
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-
-        // Format time as "10:00 AM"
-        function formatTime(timeString) {
-            const time = timeString.split(':');
-            let hours = parseInt(time[0]);
-            const minutes = time[1];
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12; // the hour '0' should be '12'
-            return hours + ':' + minutes + ' ' + ampm;
-        }
-
-        // Confirm appointment
-        function confirmAppointment(id) {
-            const appointment = appointments.find(a => a.id === id);
-            if (appointment) {
-                appointment.status = 'Confirmed';
-                renderAppointments();
-                showMessage('Appointment confirmed successfully!', 'success');
-            }
-        }
-
-        // Cancel appointment
-        function cancelAppointment(id) {
-            const appointment = appointments.find(a => a.id === id);
-            if (appointment) {
-                appointment.status = 'Cancelled';
-                renderAppointments();
-                showMessage('Appointment cancelled successfully!', 'success');
-            }
-        }
-
-        // Show message
-        function showMessage(message, type) {
-            const messageArea = document.getElementById('messageArea');
-            messageArea.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-            
-            // Auto hide message after 3 seconds
-            setTimeout(() => {
-                messageArea.innerHTML = '';
-            }, 3000);
-        }
-
-        // Filter appointments based on search input
-        function filterAppointments() {
-            const searchText = document.getElementById('searchInput').value.toLowerCase();
-            
-            if (!searchText) {
-                renderAppointments();
-                return;
-            }
-            
-            const filteredAppointments = appointments.filter(appt => 
-                appt.patient.toLowerCase().includes(searchText) || 
-                appt.purpose.toLowerCase().includes(searchText) ||
-                appt.status.toLowerCase().includes(searchText)
-            );
-            
-            const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = '';
-            
-            if (filteredAppointments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No matching appointments found.</td></tr>';
-                return;
-            }
-            
-            filteredAppointments.forEach(appt => {
-                const row = document.createElement('tr');
-                
-                // Format date and time
-                const formattedDate = formatDate(appt.date);
-                const formattedTime = formatTime(appt.time);
-                
-                row.innerHTML = `
-                    <td>${formattedDate} - ${formattedTime}</td>
-                    <td>${appt.patient}</td>
-                    <td>${appt.purpose}</td>
-                    <td><span class="status-badge status-${appt.status.toLowerCase()}">${appt.status}</span></td>
-                    <td>
-                        ${appt.status === 'Scheduled' ? 
-                            `<button class="btn btn-success" onclick="confirmAppointment(${appt.id})">Confirm</button>
-                             <button class="btn btn-danger" onclick="cancelAppointment(${appt.id})">Cancel</button>` : 
-                            '<span>No actions available</span>'
-                        }
-                    </td>
-                `;
-                
-                tbody.appendChild(row);
-            });
-        }
-
-        // Demo function to add a new appointment
-        function addDemoAppointment() {
-            const newId = appointments.length > 0 ? Math.max(...appointments.map(a => a.id)) + 1 : 1;
-            
-            // Create a new appointment with a date in the future
-            const nextWeek = new Date();
-            nextWeek.setDate(nextWeek.getDate() + 7);
-            
-            const newAppointment = {
-                id: newId,
-                date: nextWeek.toISOString().split('T')[0],
-                time: '10:00:00',
-                patient: 'New Patient ' + newId,
-                purpose: 'Consultation',
-                status: 'Scheduled'
-            };
-            
-            appointments.push(newAppointment);
-            renderAppointments();
-            showMessage('Demo appointment added successfully!', 'success');
-        }
-
-        // Show all appointments (clear search)
-        function showAllAppointments() {
-            document.getElementById('searchInput').value = '';
-            renderAppointments();
-        }
-
-        // Clear all appointments
-        function clearAppointments() {
-            appointments = [];
-            renderAppointments();
-            showMessage('All appointments cleared.', 'success');
-        }
+        $ch = curl_init('http://localhost:3000/api/scheduleAppointment');
     </script>
 </body>
 </html>

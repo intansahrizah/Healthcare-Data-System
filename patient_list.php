@@ -14,7 +14,7 @@ if ($conn->connect_error) {
 }
 
 // Fetch patients from database
-$sql = "SELECT patientName, ic_number, gender, email, phone FROM patients ORDER BY patientName";
+$sql = "SELECT patientsId, patientName, ic_number, gender, email, phone FROM patients ORDER BY patientName";
 $result = $conn->query($sql);
 $patients = [];
 
@@ -326,6 +326,7 @@ $conn->close();
                 min-width: 600px;
             }
         }
+        
     </style>
 </head>
 <body>
@@ -404,11 +405,10 @@ $conn->close();
                                     <td><?php echo htmlspecialchars($patient['email']); ?></td>
                                     <td><?php echo htmlspecialchars($patient['phone']); ?></td>
                                     <td class="action-btns">
-                                        <a href="patient_detail.php?patientName=<?php echo urlencode($patient['patientName']); ?>" title="View">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
+                                        <a href="patient_detail.php?patientName=<?php echo urlencode($patient['patientName']); ?>" title="View"><i class="fas fa-eye"></i></a>
+                                        <a href="edit_patient.php?patientsId=<?php echo htmlspecialchars($patient['patientsId']); ?>" title="Edit"><i class="fas fa-edit"></i></a>
                                         <a href="delete_patient.php?patientName=<?php echo $patient['patientName']; ?>" title="Delete" 
-                                           onclick="return confirm('Are you sure you want to delete this record?')">
+                                         onclick="return confirm('Are you sure you want to delete this record?')">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
                                     </td>

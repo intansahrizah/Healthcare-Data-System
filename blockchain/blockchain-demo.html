@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Healthcare Blockchain Demo</title>
+    <style>
+        .block { background: #e8f5e8; padding: 20px; margin: 10px; border-radius: 10px; }
+        .tx-hash { font-family: monospace; background: #f0f0f0; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🏥 Healthcare Blockchain - LIVE DEMO</h1>
+    
+    <div class="block">
+        <h2>✅ REAL ETHEREUM BLOCKCHAIN ACTIVE</h2>
+        <div id="status">Loading...</div>
+    </div>
+
+    <div class="block">
+        <h2>📊 Blockchain Data Summary</h2>
+        <div id="summary">Loading...</div>
+    </div>
+
+    <div class="block">
+        <h2>⛓️ Recent Transactions</h2>
+        <div id="transactions">Loading...</div>
+    </div>
+
+    <script>
+        async function updateDemo() {
+            const status = await fetch('http://localhost:3001/api/blockchain-status').then(r => r.json());
+            const data = await fetch('http://localhost:3001/api/blockchain-data').then(r => r.json());
+            
+            document.getElementById('status').innerHTML = `
+                <strong>Network:</strong> ${status.blockchain.network}<br>
+                <strong>Status:</strong> <span style="color: green">✅ ${status.blockchain.status}</span><br>
+                <strong>Block:</strong> ${status.blockchain.blockNumber}<br>
+                <strong>Accounts:</strong> ${status.blockchain.accounts}
+            `;
+
+            document.getElementById('summary').innerHTML = `
+                <strong>Patients:</strong> ${status.dataCounts.patients}<br>
+                <strong>Appointments:</strong> ${status.dataCounts.appointments}<br>
+                <strong>Medical Records:</strong> ${status.dataCounts.medicalRecords}
+            `;
+
+            let txHtml = '';
+            if (data.data.patients.DEMO001) {
+                txHtml += `<div><strong>Patient Registration:</strong> <span class="tx-hash">${data.data.patients.DEMO001.blockchainData.transactionHash}</span></div>`;
+            }
+            if (data.data.appointments.APPT001) {
+                txHtml += `<div><strong>Appointment:</strong> <span class="tx-hash">${data.data.appointments.APPT001.blockchainData.transactionHash}</span></div>`;
+            }
+            if (data.data.medicalRecords.MED001) {
+                txHtml += `<div><strong>Medical Record:</strong> <span class="tx-hash">${data.data.medicalRecords.MED001.blockchainData.transactionHash}</span></div>`;
+            }
+            
+            document.getElementById('transactions').innerHTML = txHtml;
+        }
+
+        setInterval(updateDemo, 2000);
+        updateDemo();
+    </script>
+</body>
+</html>

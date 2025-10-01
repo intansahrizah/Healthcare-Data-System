@@ -13,7 +13,6 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get form data
@@ -34,13 +33,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($address)) $errors[] = "Address is required";
     
     if (empty($errors)) {
-
         // Insert into database
         $stmt = $conn->prepare("INSERT INTO patients (patientName, ic_number, gender, email, phone, address) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("ssssss", $patientName, $icNumber, $gender, $email, $phone, $address);
         
         if ($stmt->execute()) {
+            $last_insert_id = $conn->insert_id; // Get the last inserted ID
             $success = "Patient registered successfully!";
+            
+            // Blockchain integration - ONLY after successful database insertion
+            $blockchain_data = [
+                'patientsId' => $last_insert_id,
+                'patientName' => $patientName,
+                'ic_number' => $icNumber,
+                'gender' => $gender,
+                'email' => $email,
+                'phone' => $phone,
+                'address' => $address
+            ];
+
+            $ch = curl_init('http://localhost:3000/api/registerPatient');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($blockchain_data));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            $blockchain_response = curl_exec($ch);
+            curl_close($ch);
+            
             // Clear form after successful submission
             $_POST = array();
         } else {
@@ -49,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -82,9 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         body {
-            background-color: var(--light);
-            color: var(--dark);
-            line-height: 1.6;
+            background-color: #f5f7fa;
+            background: url('https://gov-web-sing.s3.ap-southeast-1.amazonaws.com/uploads/2023/1/Wordpress-featured-images-48-1672795987342.jpg') no-repeat center center fixed;
+            color: #333;
+            background-size: cover; 
         }
 
         .app-container {
@@ -151,7 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .main-content {
             flex: 1;
             padding: 2rem;
-            background-color: #f9fafb;
             overflow-y: auto;
         }
 

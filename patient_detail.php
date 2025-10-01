@@ -48,6 +48,23 @@ if ($historyResult->num_rows > 0) {
     }
 }
 
+// After loading patient data from MySQL
+$patient_id = $_GET['id'];
+$blockchain_patient = json_decode(file_get_contents("http://localhost:3000/api/patient/{$patient_id}"), true);
+?>
+
+<!-- Add this to your existing patient detail page -->
+<div class="blockchain-info" style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <h3>🔗 Blockchain Verification</h3>
+    <?php if($blockchain_patient['success']): ?>
+        <p>✅ <strong>Verified on Blockchain</strong></p>
+        <p><strong>Block Hash:</strong> <code><?php echo $blockchain_patient['patient']['blockHash']; ?></code></p>
+        <p><strong>Registered:</strong> <?php echo $blockchain_patient['patient']['created_at']; ?></p>
+        <p><strong>Medical Records:</strong> <?php echo count($blockchain_patient['patient']['medicalHistory']); ?> entries</p>
+    <?php else: ?>
+        <p>❌ <strong>Not found on blockchain</strong></p>
+    <?php endif;
+
 $conn->close();
 ?>
 

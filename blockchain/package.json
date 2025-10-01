@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.7.0"
+    "@truffle/hdwallet-provider": "^1.7.0",
+    "express": "^5.1.0",
+    "php": "^1.1.0",
+    "web3": "^1.10.4"
   }
 }

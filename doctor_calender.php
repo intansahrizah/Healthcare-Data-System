@@ -13,18 +13,70 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fetch appointments for display
+// Get current month and year from request or use current date
+$month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
+$year = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
+
+// Validate month and year
+if ($month < 1 || $month > 12) $month = (int)date('m');
+if ($year < 2020 || $year > 2030) $year = (int)date('Y');
+
+// Calculate first day of the month and number of days
+$firstDayOfMonth = mktime(0, 0, 0, $month, 1, $year);
+$numberOfDays = date('t', $firstDayOfMonth);
+$firstDayOfWeek = date('N', $firstDayOfMonth); // 1 (Monday) to 7 (Sunday)
+
+// Calculate previous and next month/year
+$prevMonth = $month - 1;
+$prevYear = $year;
+if ($prevMonth < 1) {
+    $prevMonth = 12;
+    $prevYear--;
+}
+
+$nextMonth = $month + 1;
+$nextYear = $year;
+if ($nextMonth > 12) {
+    $nextMonth = 1;
+    $nextYear++;
+}
+
+// Fetch appointments for the selected month
+$startDate = "$year-" . sprintf('%02d', $month) . "-01";
+$endDate = "$year-" . sprintf('%02d', $month) . "-" . $numberOfDays;
+
 $appointments = [];
 $appointment_result = $conn->query("
     SELECT a.*, p.patientName as patient_name, d.doctorName
     FROM appointments a 
     LEFT JOIN patients p ON a.patientsId = p.patientsId 
     LEFT JOIN doctors d ON a.doctorId = d.doctorId
+    WHERE a.appointment_date BETWEEN '$startDate' AND '$endDate'
     ORDER BY a.appointment_date, a.appointment_time
 ");
+
 if ($appointment_result && $appointment_result->num_rows > 0) {
     while($row = $appointment_result->fetch_assoc()) {
         $appointments[] = $row;
+    }
+}
+
+// Fetch upcoming appointments (next 30 days)
+$today = date('Y-m-d');
+$nextMonthDate = date('Y-m-d', strtotime('+30 days'));
+$upcoming_appointments = [];
+$upcoming_result = $conn->query("
+    SELECT a.*, p.patientName as patient_name, d.doctorName
+    FROM appointments a 
+    LEFT JOIN patients p ON a.patientsId = p.patientsId 
+    LEFT JOIN doctors d ON a.doctorId = d.doctorId
+    WHERE a.appointment_date BETWEEN '$today' AND '$nextMonthDate'
+    ORDER BY a.appointment_date, a.appointment_time
+");
+
+if ($upcoming_result && $upcoming_result->num_rows > 0) {
+    while($row = $upcoming_result->fetch_assoc()) {
+        $upcoming_appointments[] = $row;
     }
 }
 
@@ -199,6 +251,18 @@ $conn->close();
             border-radius: 5px;
             overflow-y: auto;
             background-color: white;
+            transition: all 0.2s;
+        }
+
+        .calendar-day:hover {
+            background-color: #f5f7fa;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .calendar-day.today {
+            background-color: #e3f2fd;
+            border: 2px solid #3498db;
         }
 
         .calendar-day.empty {
@@ -206,10 +270,18 @@ $conn->close();
             border: none;
         }
 
+        .calendar-day.other-month {
+            opacity: 0.4;
+        }
+
         .calendar-day-number {
             font-weight: 600;
             margin-bottom: 8px;
             color: #2c3e50;
+        }
+
+        .calendar-day.today .calendar-day-number {
+            color: #3498db;
         }
 
         .appointment-event {
@@ -220,6 +292,12 @@ $conn->close();
             font-size: 12px;
             border-radius: 3px;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .appointment-event:hover {
+            background-color: #d1e7ff;
+            transform: translateX(2px);
         }
 
         .appointment-details {
@@ -240,6 +318,12 @@ $conn->close();
             padding: 15px;
             border-bottom: 1px solid #eee;
             margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .appointment-item:hover {
+            background-color: #f9f9f9;
+            border-radius: 5px;
         }
 
         .appointment-item:last-child {
@@ -298,6 +382,67 @@ $conn->close();
             padding: 20px;
         }
 
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            color: #2c3e50;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .appointment-detail-item {
+            margin-bottom: 15px;
+        }
+
+        .appointment-detail-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -352,7 +497,7 @@ $conn->close();
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="doc_listpatient.php">
+                    <a href="doctor_appoinment.php">
                         <i class="fas fa-user-injured"></i>
                         Patients
                     </a>
@@ -377,52 +522,48 @@ $conn->close();
 
             <div class="calendar-container">
                 <div class="calendar-header">
-                    <div class="calendar-title"><?php echo date('F Y'); ?></div>
+                    <div class="calendar-title"><?php echo date('F Y', $firstDayOfMonth); ?></div>
                     <div class="calendar-nav">
-                        <button id="prevMonth"><i class="fas fa-chevron-left"></i> Previous</button>
-                        <button id="nextMonth">Next <i class="fas fa-chevron-right"></i></button>
+                        <button id="prevMonth" data-month="<?php echo $prevMonth; ?>" data-year="<?php echo $prevYear; ?>">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <button id="today">Today</button>
+                        <button id="nextMonth" data-month="<?php echo $nextMonth; ?>" data-year="<?php echo $nextYear; ?>">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="calendar-grid">
-                    <div class="calendar-day-header">Sun</div>
                     <div class="calendar-day-header">Mon</div>
                     <div class="calendar-day-header">Tue</div>
                     <div class="calendar-day-header">Wed</div>
                     <div class="calendar-day-header">Thu</div>
                     <div class="calendar-day-header">Fri</div>
                     <div class="calendar-day-header">Sat</div>
+                    <div class="calendar-day-header">Sun</div>
                     
                     <!-- Calendar days -->
                     <?php
-                    // Get first day of month and number of days
-                    $firstDay = date('N', strtotime(date('Y-m-01')));
-                    $daysInMonth = date('t');
-                    
                     // Add empty cells for days before the first day of the month
-                    for ($i = 1; $i < $firstDay; $i++) {
+                    for ($i = 1; $i < $firstDayOfWeek; $i++) {
                         echo '<div class="calendar-day empty"></div>';
                     }
                     
+                    // Get today's date for highlighting
+                    $todayDate = date('Y-m-d');
+                    
                     // Add cells for each day of the month
-                    for ($day = 1; $day <= $daysInMonth; $day++) {
-                        $date = date('Y-m-') . sprintf('%02d', $day);
-                        $hasAppointment = false;
+                    for ($day = 1; $day <= $numberOfDays; $day++) {
+                        $date = "$year-" . sprintf('%02d', $month) . "-" . sprintf('%02d', $day);
+                        $isToday = ($date == $todayDate) ? 'today' : '';
                         
-                        // Check if this day has any appointments
-                        foreach ($appointments as $appt) {
-                            if ($appt['appointment_date'] == $date) {
-                                $hasAppointment = true;
-                                break;
-                            }
-                        }
-                        
-                        echo '<div class="calendar-day">';
+                        echo '<div class="calendar-day ' . $isToday . '" data-date="' . $date . '">';
                         echo '<div class="calendar-day-number">' . $day . '</div>';
                         
                         // Show appointments for this day
                         foreach ($appointments as $appt) {
                             if ($appt['appointment_date'] == $date) {
-                                echo '<div class="appointment-event" title="' . 
+                                echo '<div class="appointment-event" data-appointment-id="' . $appt['appointmentId'] . '" title="' . 
                                      htmlspecialchars($appt['patient_name']) . ' - ' . 
                                      htmlspecialchars($appt['reason']) . '">' . 
                                      htmlspecialchars($appt['patient_name']) . ' - ' . 
@@ -434,11 +575,12 @@ $conn->close();
                         echo '</div>';
                     }
                     
-                    // Add empty cells to complete the grid
-                    $lastCell = $firstDay + $daysInMonth - 1;
-                    $remainingCells = 42 - $lastCell; // 6 rows x 7 days = 42 cells
+                    // Add empty cells to complete the grid (6 rows x 7 days = 42 cells total)
+                    $totalCells = 42; // 6 rows x 7 days
+                    $filledCells = $firstDayOfWeek - 1 + $numberOfDays;
+                    $remainingCells = $totalCells - $filledCells;
                     
-                    for ($i = 1; $i <= $remainingCells; $i++) {
+                    for ($i = 0; $i < $remainingCells; $i++) {
                         echo '<div class="calendar-day empty"></div>';
                     }
                     ?>
@@ -447,14 +589,13 @@ $conn->close();
 
             <div class="appointment-details">
                 <h3>My Upcoming Appointments</h3>
-                <?php
-                $hasUpcomingAppointments = false;
-                $today = date('Y-m-d');
-                
-                foreach ($appointments as $appt) {
-                    if ($appt['appointment_date'] >= $today) {
+                <div id="upcoming-appointments-list">
+                    <?php
+                    $hasUpcomingAppointments = false;
+                    
+                    foreach ($upcoming_appointments as $appt) {
                         $hasUpcomingAppointments = true;
-                        echo '<div class="appointment-item">';
+                        echo '<div class="appointment-item" data-appointment-id="' . $appt['appointmentId'] . '">';
                         echo '<div class="appointment-time">' . 
                              date('M j, Y', strtotime($appt['appointment_date'])) . 
                              ' - ' . 
@@ -473,26 +614,84 @@ $conn->close();
                              '</span>';
                         echo '</div>';
                     }
-                }
-                
-                if (!$hasUpcomingAppointments) {
-                    echo '<p class="no-appointments">No upcoming appointments found.</p>';
-                }
-                ?>
+                    
+                    if (!$hasUpcomingAppointments) {
+                        echo '<p class="no-appointments">No upcoming appointments found.</p>';
+                    }
+                    ?>
+                </div>
             </div>
         </main>
     </div>
 
-    <script>
-        // Simple month navigation
-        document.getElementById('prevMonth').addEventListener('click', function() {
-            // In a real implementation, this would navigate to the previous month
-            alert('Previous month navigation would be implemented here');
-        });
+    <!-- Appointment Detail Modal -->
+    <div class="modal" id="appointmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Appointment Details</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div id="modal-body">
+                <!-- Content will be loaded via AJAX -->
+                <div class="loading">Loading appointment details...</div>
+            </div>
+        </div>
+    </div>
 
-        document.getElementById('nextMonth').addEventListener('click', function() {
-            // In a real implementation, this would navigate to the next month
-            alert('Next month navigation would be implemented here');
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Month navigation
+            $('#prevMonth, #nextMonth').on('click', function() {
+                const month = $(this).data('month');
+                const year = $(this).data('year');
+                window.location.href = `?month=${month}&year=${year}`;
+            });
+            
+            // Today button
+            $('#today').on('click', function() {
+                const today = new Date();
+                const month = today.getMonth() + 1;
+                const year = today.getFullYear();
+                window.location.href = `?month=${month}&year=${year}`;
+            });
+            
+            // Appointment click event - show modal with details
+            $('.appointment-event, .appointment-item').on('click', function() {
+                const appointmentId = $(this).data('appointment-id');
+                showAppointmentDetails(appointmentId);
+            });
+            
+            // Close modal
+            $('.close-modal').on('click', function() {
+                $('#appointmentModal').hide();
+            });
+            
+            // Close modal if clicked outside
+            $(window).on('click', function(event) {
+                if ($(event.target).is('#appointmentModal')) {
+                    $('#appointmentModal').hide();
+                }
+            });
+            
+            // Function to show appointment details
+            function showAppointmentDetails(appointmentId) {
+                $('#appointmentModal').show();
+                $('#modal-body').html('<div class="loading">Loading appointment details...</div>');
+                
+                // AJAX call to get appointment details
+                $.ajax({
+                    url: 'get_appointment_details.php',
+                    type: 'GET',
+                    data: { appointment_id: appointmentId },
+                    success: function(response) {
+                        $('#modal-body').html(response);
+                    },
+                    error: function() {
+                        $('#modal-body').html('<div class="error">Error loading appointment details.</div>');
+                    }
+                });
+            }
         });
     </script>
 </body>

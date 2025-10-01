@@ -18,6 +18,7 @@ if (!isset($_GET['patientName']) || empty($_GET['patientName'])) {
     die("Patient name not specified");
 }
 
+
 $patientName = $_GET['patientName'];
 
 // Process form submission if POST request

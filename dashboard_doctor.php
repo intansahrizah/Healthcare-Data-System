@@ -386,7 +386,7 @@ $conn->close();
         <aside class="sidebar">
             <div class="logo">
                 <h1>Welcome Doctor</h1>
-                <p>Patient Management System </p>
+                <p>Healthcare Management System </p>
             </div>
             <ul class="nav-menu">
                 <li class="nav-item">
@@ -395,7 +395,7 @@ $conn->close();
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="doc_listpatient.php">
+                    <a href="doctor_appoinment.php">
                         <i class="fas fa-user-injured"></i> Patients
                     </a>
                 </li>

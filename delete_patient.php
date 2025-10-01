@@ -15,13 +15,13 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Check if patientsId is set and is a valid integer
-if (isset($_GET['patientsId']) && is_numeric($_GET['patientsId'])) {
-    $patientsId = intval($_GET['patientsId']);
+// Check if patientName is set
+if (isset($_GET['patientName'])) {
+    $patientName = $conn->real_escape_string($_GET['patientName']);
     
     // Prepare a delete statement
-    $stmt = $conn->prepare("DELETE FROM patients WHERE patientsId = ?");
-    $stmt->bind_param("i", $patientsId);
+    $stmt = $conn->prepare("DELETE FROM patients WHERE patientName = ?");
+    $stmt->bind_param("s", $patientName);
     
     // Execute the statement
     if ($stmt->execute()) {
@@ -31,7 +31,7 @@ if (isset($_GET['patientsId']) && is_numeric($_GET['patientsId'])) {
             header("Location: patient_list.php?message=deleted");
             exit();
         } else {
-            // No patient found with that ID
+            // No patient found with that name
             header("Location: patient_list.php?error=notfound");
             exit();
         }
@@ -45,7 +45,7 @@ if (isset($_GET['patientsId']) && is_numeric($_GET['patientsId'])) {
     $stmt->close();
 } else {
     // Invalid request
-    header("Location: patients.php?error=invalid");
+    header("Location: patient_list.php?error=invalid");
     exit();
 }
 

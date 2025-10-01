@@ -38,7 +38,7 @@ $today_patients_result = $conn->query($today_patients_sql);
 $today_patients = $today_patients_result->fetch_assoc()['today_count'];
 
 // Fetch all doctors
-$doctors_sql = "SELECT doctorId, doctorName, specialty, shift, on_duty FROM doctors ORDER BY on_duty DESC, doctorName";
+$doctors_sql = "SELECT doctorId, doctorName, shift, on_duty FROM doctors ORDER BY on_duty DESC, doctorName";
 $doctors_result = $conn->query($doctors_sql);
 $doctors = [];
 
@@ -782,15 +782,10 @@ $conn->close();
                                         <form method="POST" style="display: inline;">
                                             <input type="hidden" name="doctor_id" value="<?php echo $doctor['doctorId']; ?>">
                                             <input type="hidden" name="on_duty" value="1">
-                                            <button type="submit" class="btn btn-success" <?php echo $doctor['on_duty'] ? 'disabled' : ''; ?>>
-                                                <i class="fas fa-toggle-on"></i> Set On Duty
-                                            </button>
                                         </form>
                                         <form method="POST" style="display: inline;">
                                             <input type="hidden" name="doctor_id" value="<?php echo $doctor['doctorId']; ?>">
                                             <input type="hidden" name="on_duty" value="0">
-                                            <button type="submit" class="btn btn-danger" <?php echo !$doctor['on_duty'] ? 'disabled' : ''; ?>>
-                                                <i class="fas fa-toggle-off"></i> Set Off Duty
                                             </button>
                                         </form>
                                     </div>
@@ -831,7 +826,7 @@ $conn->close();
                                             <td><?php echo htmlspecialchars($patient['patientName']); ?></td>
                                             <td><?php echo htmlspecialchars($patient['ic_number']); ?></td>
                                             <td class="action-btns">
-                                                <a href="patients_details.php?patientName=<?php echo $patient['patientName']; ?>" title="View">
+                                                <a href="patient_detail.php?patientName=<?php echo $patient['patientName']; ?>" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                             </td>

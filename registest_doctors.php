@@ -93,11 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         body {
             background-color: #f5f7fa;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 0;
+            background: url('https://gov-web-sing.s3.ap-southeast-1.amazonaws.com/uploads/2023/1/Wordpress-featured-images-48-1672795987342.jpg') no-repeat center center fixed;
+            color: #333;
+            background-size: cover; 
         }
+
         
         .header {
             background-color: #1a75bc;
@@ -352,12 +352,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="active">
+                    <a href="doctor_list.php" class="active">
                         <i class="fas fa-user-md"></i> Doctors
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#">
+                    <a href="test_appoiment.php">
                         <i class="fas fa-calendar-check"></i> Appointments
                     </a>
                 </li>
