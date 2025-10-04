@@ -48,24 +48,6 @@ if ($historyResult->num_rows > 0) {
     }
 }
 
-// After loading patient data from MySQL
-$patient_id = $_GET['id'];
-$blockchain_patient = json_decode(file_get_contents("http://localhost:3000/api/patient/{$patient_id}"), true);
-?>
-
-<!-- Add this to your existing patient detail page -->
-<div class="blockchain-info" style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-    <h3>🔗 Blockchain Verification</h3>
-    <?php if($blockchain_patient['success']): ?>
-        <p>✅ <strong>Verified on Blockchain</strong></p>
-        <p><strong>Block Hash:</strong> <code><?php echo $blockchain_patient['patient']['blockHash']; ?></code></p>
-        <p><strong>Registered:</strong> <?php echo $blockchain_patient['patient']['created_at']; ?></p>
-        <p><strong>Medical Records:</strong> <?php echo count($blockchain_patient['patient']['medicalHistory']); ?> entries</p>
-    <?php else: ?>
-        <p>❌ <strong>Not found on blockchain</strong></p>
-    <?php endif;
-
-$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -76,7 +58,6 @@ $conn->close();
     <title><?php echo htmlspecialchars($patient['patientName']); ?> - Medical History</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Your existing CSS styles remain unchanged */
         :root {
             --primary: #3498db;
             --primary-dark: #2980b9;
@@ -256,6 +237,14 @@ $conn->close();
 
         .summary-value {
             font-size: 1.1rem;
+        }
+
+        /* Blockchain Info */
+        .blockchain-info {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
         }
 
         /* Medical History List */
@@ -469,7 +458,8 @@ $conn->close();
                                     <div class="history-header">
                                         <span class="history-date">
                                             <?php echo date('M j, Y \a\t g:i A', strtotime($entry['visit_date'])); ?>
-                                        </span>                                    </div>
+                                        </span>
+                                    </div>
                                     
                                     <div class="history-diagnosis">
                                         <span class="history-label">Diagnosis:</span> 
@@ -503,3 +493,7 @@ $conn->close();
     </div>
 </body>
 </html>
+
+<?php
+$conn->close();
+?>

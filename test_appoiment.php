@@ -727,6 +727,11 @@ $conn->close();
                         Appointments
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="logout_doctor.php">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </li>
             </ul>
         </aside>
 

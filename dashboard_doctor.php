@@ -2,6 +2,20 @@
 // Start output buffering to prevent header errors
 ob_start();
 
+// Start session and check if doctor is logged in
+session_start();
+
+// Debug session data
+error_log("Session data: " . print_r($_SESSION, true));
+
+if (!isset($_SESSION['doctorId']) || !isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    error_log("Redirecting to login - Session missing or invalid");
+    header("Location: logintest_doctor.php");
+    exit();
+}
+
+$doctor_id = $_SESSION['doctorId'];
+
 // Database configuration
 $servername = "localhost";
 $username = "root";
@@ -16,29 +30,61 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fetch total patients count
-$sql_total = "SELECT COUNT(*) as total FROM patients";
-$result_total = $conn->query($sql_total);
-$total_patients = $result_total->fetch_assoc()['total'];
-
-// Fetch today's patients count
-$sql_today = "SELECT COUNT(*) as today FROM patients WHERE DATE(created_at) = CURDATE()";
-$result_today = $conn->query($sql_today);
-$today_patients = $result_today->fetch_assoc()['today'];
-
-// Fetch appointments for today
-$sql_appointments = "SELECT COUNT(*) as appointments FROM appointments WHERE DATE(appointment_date) = CURDATE()";
-$result_appointments = $conn->query($sql_appointments);
-$today_appointments = $result_appointments->fetch_assoc()['appointments'];
-
-// Fetch recent patients (last 5)
-$sql_recent = "SELECT patientName, ic_number, created_at FROM patients ORDER BY created_at DESC LIMIT 5";
-$result_recent = $conn->query($sql_recent);
+// Initialize variables with default values
+$total_patients = 0;
+$today_patients = 0;
+$today_appointments = 0;
 $recent_patients = [];
-if ($result_recent->num_rows > 0) {
-    while($row = $result_recent->fetch_assoc()) {
-        $recent_patients[] = $row;
+
+try {
+    // Fetch total patients count FOR THIS DOCTOR ONLY
+    $sql_total = "SELECT COUNT(*) as total FROM patients WHERE doctorId = ?";
+    $stmt_total = $conn->prepare($sql_total);
+    $stmt_total->bind_param("i", $doctor_id);
+    $stmt_total->execute();
+    $result_total = $stmt_total->get_result();
+    if ($result_total) {
+        $total_patients = $result_total->fetch_assoc()['total'];
     }
+    $stmt_total->close();
+
+    // Fetch today's patients count FOR THIS DOCTOR ONLY
+    $sql_today = "SELECT COUNT(*) as today FROM patients WHERE doctorId = ? AND DATE(created_at) = CURDATE()";
+    $stmt_today = $conn->prepare($sql_today);
+    $stmt_today->bind_param("i", $doctor_id);
+    $stmt_today->execute();
+    $result_today = $stmt_today->get_result();
+    if ($result_today) {
+        $today_patients = $result_today->fetch_assoc()['today'];
+    }
+    $stmt_today->close();
+
+    // Fetch appointments for today FOR THIS DOCTOR ONLY
+    $sql_appointments = "SELECT COUNT(*) as appointments FROM appointments WHERE doctorId = ? AND DATE(appointment_date) = CURDATE()";
+    $stmt_appointments = $conn->prepare($sql_appointments);
+    $stmt_appointments->bind_param("i", $doctor_id);
+    $stmt_appointments->execute();
+    $result_appointments = $stmt_appointments->get_result();
+    if ($result_appointments) {
+        $today_appointments = $result_appointments->fetch_assoc()['appointments'];
+    }
+    $stmt_appointments->close();
+
+    // Fetch recent patients (last 5) FOR THIS DOCTOR ONLY
+    $sql_recent = "SELECT patientName, ic_number, created_at FROM patients WHERE doctorId = ? ORDER BY created_at DESC LIMIT 5";
+    $stmt_recent = $conn->prepare($sql_recent);
+    $stmt_recent->bind_param("i", $doctor_id);
+    $stmt_recent->execute();
+    $result_recent = $stmt_recent->get_result();
+    if ($result_recent && $result_recent->num_rows > 0) {
+        while($row = $result_recent->fetch_assoc()) {
+            $recent_patients[] = $row;
+        }
+    }
+    $stmt_recent->close();
+
+} catch (Exception $e) {
+    error_log("Database error: " . $e->getMessage());
 }
 
 $conn->close();
@@ -77,7 +123,7 @@ $conn->close();
             background-color: #f5f7fa;
             background: url('https://gov-web-sing.s3.ap-southeast-1.amazonaws.com/uploads/2023/1/Wordpress-featured-images-48-1672795987342.jpg') no-repeat center center fixed;
             color: #333;
-            background-size: cover;
+            background-size: cover; 
         }
 
         .app-container {
@@ -189,35 +235,6 @@ $conn->close();
 
         .btn:hover {
             background-color: var(--primary-dark);
-        }
-
-        .appointment-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-       .appointment-table th{
-            padding: 10px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-       } 
-        .appointment-table td {
-            padding: 10px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-        }
-
-        .appointment-table th {
-            background-color: #2c3e50;
-            font-weight: 600;
-            color: #eee;
-        }
-
-        .appointment-table {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
         }
 
         /* Dashboard Stats */
@@ -385,8 +402,8 @@ $conn->close();
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>Welcome Doctor</h1>
-                <p>Healthcare Management System </p>
+                <h1>Welcome Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></h1>
+                <p>Healthcare Management System</p>
             </div>
             <ul class="nav-menu">
                 <li class="nav-item">
@@ -402,6 +419,11 @@ $conn->close();
                 <li class="nav-item">
                     <a href="doctor_calender.php">
                         <i class="fas fa-calendar-check"></i> Appointments
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="logout_doctor.php">
+                        <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </li>
             </ul>
@@ -469,17 +491,17 @@ $conn->close();
                 </div>
 
                 <div class="table-container">
-                    <table class="patient-table">
-                        <thead>
-                            <tr>
-                                <th>Full Name</th>
-                                <th>IC Number</th>
-                                <th>Date Added</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (count($recent_patients) > 0): ?>
+                    <?php if (count($recent_patients) > 0): ?>
+                        <table class="patient-table">
+                            <thead>
+                                <tr>
+                                    <th>Full Name</th>
+                                    <th>IC Number</th>
+                                    <th>Date Added</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                                 <?php foreach ($recent_patients as $patient): ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($patient['patientName']); ?></td>
@@ -492,48 +514,15 @@ $conn->close();
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="4">
-                                        <div class="no-data">
-                                            <i class="fas fa-user-slash"></i>
-                                            <h3>No Patients Found</h3>
-                                            <p>No patient records found in the database.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Upcoming Appointments Section -->
-            <div class="dashboard-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-calendar-alt"></i> Upcoming Appointments</h3>
-                    <a href="test_appoiment.php" class="btn">
-                        <i class="fas fa-calendar-plus"></i> Schedule New
-                    </a>
-                </div>
-                
-                <table class="appointment-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Patient</th>
-                            <th>Purpose</th>
-                            <th>Doctor</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                </table>
-                
-                <div class="no-data">
-                    <i class="fas fa-calendar-times"></i>
-                    <h3>No Upcoming Appointments</h3>
-                    <p>There are no appointments scheduled for today.</p>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <div class="no-data">
+                            <i class="fas fa-user-slash"></i>
+                            <h3>No Patients Found</h3>
+                            <p>No patient records found for your account.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </main>

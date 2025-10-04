@@ -493,12 +493,12 @@ $conn->close();
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="doc_patientlist.php">
+                    <a href="doctor_appoinment.php">
                         <i class="fas fa-user-injured"></i> Patients
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="test_appoiment.php">
+                    <a href="doctor_calender.php">
                         <i class="fas fa-calendar-check"></i> Appointments
                     </a>
                 </li>
@@ -510,7 +510,7 @@ $conn->close();
             <div class="header">
                 <h2><i class="fas fa-history"></i> Patient Medical Information </h2>
                 <div>
-                    <a href="doc_listpatient.php" class="btn btn-back">
+                    <a href="doctor_appoinment.php" class="btn btn-back">
                         <i class="fas fa-arrow-left"></i> Back to List
                     </a>
                     <a href="patient_detail.php?patientName=<?php echo urlencode($patient['patientName']); ?>" class="btn">

@@ -1,4 +1,7 @@
 <?php
+// Start session at the very beginning
+session_start();
+
 // Database configuration
 $servername = "localhost";
 $username = "root";
@@ -39,13 +42,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Verify password
             if (password_verify($password, $password_hash)) {
-                // Start session and redirect to dashboard
-                session_start();
-                $_SESSION['doctor_id'] = $doctorId;
+                // Set session variables and redirect to dashboard
+                $_SESSION['doctorId'] = $id;
                 $_SESSION['doctor_name'] = $doctorName;
                 $_SESSION['logged_in'] = true;
                 
-                header("Location: dashboard_doctor.php"); // Pegi page mana
+                // Debug: Check if session is set
+                error_log("Login successful - Doctor ID: " . $id);
+                
+                header("Location: dashboard_doctor.php");
                 exit();
             } else {
                 $errors[] = "Invalid email or password";

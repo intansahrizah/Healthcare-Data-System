@@ -1,3 +1,14 @@
+<?php
+// Start session and check if doctor is logged in
+session_start();
+if (!isset($_SESSION['doctorId']) || !isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: logintest_doctor.php");
+    exit();
+}
+
+$doctor_id = $_SESSION['doctorId'];
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,6 +23,7 @@
             --secondary: #2c3e50;
             --success: #2ecc71;
             --danger: #e74c3c;
+            --warning: #f39c12;
             --light: #f5f7fa;
             --dark: #333;
             --gray: #95a5a6;
@@ -237,6 +249,11 @@
             color: white;
         }
 
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
         .view-btn {
             display: inline-block;
             padding: 8px 12px;
@@ -251,48 +268,35 @@
             background-color: #2980b9;
         }
 
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: white;
-            width: 500px;
-            max-width: 90%;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .modal-header {
+        .patient-name-cell {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            gap: 10px;
         }
 
-        .modal-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #2c3e50;
+        .patient-name {
+            font-weight: 500;
         }
 
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #7f8c8d;
+        /* Medical History Link Button */
+        .medical-history-btn {
+            background: var(--warning);
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .medical-history-btn:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+            color: white;
+            opacity: 0.9;
         }
 
         /* Message Styles */
@@ -319,64 +323,6 @@
             background-color: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
-        }
-
-        /* Patient Details Modal */
-        #patientModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        #patientModal .modal-content {
-            width: 700px;
-            max-width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .patient-details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        
-        .detail-card {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        
-        .detail-card h4 {
-            margin-bottom: 10px;
-            color: #2c3e50;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
-        }
-
-        .detail-item {
-            margin-bottom: 15px;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .detail-value {
-            padding: 8px;
-            background: #f9f9f9;
-            border-radius: 5px;
-            border-left: 3px solid var(--primary);
         }
 
         /* Responsive Design */
@@ -406,6 +352,12 @@
 
             .action-buttons {
                 flex-direction: column;
+            }
+
+            .patient-name-cell {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
             }
         }
 
@@ -442,7 +394,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>Welcome Doctor</h1>
+                <h1>Welcome Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></h1>
                 <p>Healthcare Management System</p>
             </div>
 
@@ -465,6 +417,12 @@
                         Appointments
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="logout_doctor.php">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </a>
+                </li>
             </ul>
         </aside>
 
@@ -473,16 +431,16 @@
             <div class="header">
                 <h2>Doctor Appointment Management</h2>
                 <div class="user-profile">
-                    <span>Dr. Smith</span>
+                    <span>Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></span>
                 </div>
             </div>
 
             <?php
             // Database connection parameters
             $servername = "localhost";
-            $username = "root"; // Your MySQL username
-            $password = ""; // Your MySQL password
-            $dbname = "healthcare_system"; // Your database name
+            $username = "root";
+            $password = "";
+            $dbname = "healthcare_system";
 
             // Create connection
             $conn = new mysqli($servername, $username, $password, $dbname);
@@ -507,7 +465,7 @@
             if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if (isset($_POST['confirm_appointment'])) {
                     $appointment_id = $conn->real_escape_string($_POST['appointment_id']);
-                    $sql = "UPDATE appointments SET status = 'Confirmed' WHERE appointmentId = $appointment_id";
+                    $sql = "UPDATE appointments SET status = 'Confirmed' WHERE appointmentId = $appointment_id AND doctorId = $doctor_id";
                     
                     if ($conn->query($sql)) {
                         $success_message = "Appointment confirmed successfully!";
@@ -516,8 +474,8 @@
                     }
                 } 
                 elseif (isset($_POST['cancel_appointment'])) {
-                    $appointment_id = $conn->real_escape_string($_POST['appointmentId']);
-                    $sql = "UPDATE appointments SET status = 'Cancelled' WHERE appointmentId = $appointment_id";
+                    $appointment_id = $conn->real_escape_string($_POST['appointment_id']);
+                    $sql = "UPDATE appointments SET status = 'Cancelled' WHERE appointmentId = $appointment_id AND doctorId = $doctor_id";
                     
                     if ($conn->query($sql)) {
                         $success_message = "Appointment cancelled successfully!";
@@ -527,7 +485,7 @@
                 } 
                 elseif (isset($_POST['complete_appointment'])) {
                     $appointment_id = $conn->real_escape_string($_POST['appointment_id']);
-                    $sql = "UPDATE appointments SET status = 'Completed' WHERE appointmentId = $appointment_id";
+                    $sql = "UPDATE appointments SET status = 'Completed' WHERE appointmentId = $appointment_id AND doctorId = $doctor_id";
                     
                     if ($conn->query($sql)) {
                         $success_message = "Appointment marked as completed!";
@@ -537,25 +495,29 @@
                 }
             }
 
-            // Fetch appointments from database
-            $sql = "SELECT a.*, patientName as patient_name 
+            // Fetch appointments from database FOR THIS DOCTOR ONLY
+            $sql = "SELECT a.*, p.patientName as patient_name, p.patientsId as patient_id
                     FROM appointments a 
                     JOIN patients p ON a.patientsId = p.patientsId 
-                    WHERE a.doctorId = 2";  // Assuming doctor ID 2 is Dr. Smith
+                    WHERE a.doctorId = ?";
 
             if (!empty($search)) {
-                $sql .= " AND (patientName LIKE '%$search%' OR a.reason LIKE '%$search%' OR a.status LIKE '%$search%')";
+                $sql .= " AND (p.patientName LIKE '%$search%' OR a.reason LIKE '%$search%' OR a.status LIKE '%$search%')";
             }
 
             $sql .= " ORDER BY a.appointment_date, a.appointment_time";
 
-            $result = $conn->query($sql);
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $doctor_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
 
             if ($result->num_rows > 0) {
                 while($row = $result->fetch_assoc()) {
                     $appointments[] = $row;
                 }
             }
+            $stmt->close();
 
             // Close connection
             $conn->close();
@@ -621,7 +583,7 @@
             </div>
 
             <div class="appointment-table-container">
-                <h3>Appointment List</h3>
+                <h3>My Appointment List</h3>
                 <?php if (count($appointments) > 0): ?>
                     <table class="appointment-table">
                         <thead>
@@ -637,7 +599,11 @@
                         <tbody>
                             <?php foreach ($appointments as $appointment): ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($appointment['patient_name']); ?></td>
+                                    <td>
+                                        <div class="patient-name-cell">
+                                            <span class="patient-name"><?php echo htmlspecialchars($appointment['patient_name']); ?></span>
+                                        </div>
+                                    </td>
                                     <td><?php echo date('M j, Y', strtotime($appointment['appointment_date'])); ?></td>
                                     <td><?php echo date('g:i A', strtotime($appointment['appointment_time'])); ?></td>
                                     <td><?php echo htmlspecialchars($appointment['reason']); ?></td>
@@ -667,6 +633,13 @@
                                                 <button type="submit" name="complete_appointment" class="btn btn-primary">Complete</button>
                                             </form>
                                         <?php endif; ?>
+                                        
+                                        <!-- Medical History Button - Links to add_medical.php -->
+                                        <a href="add_medical.php?patientName=<?php echo urlencode($appointment['patient_name']); ?>" 
+                                           class="medical-history-btn" 
+                                           title="View/Add Medical History">
+                                            <i class="fas fa-file-medical"></i> Medical History
+                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -674,44 +647,11 @@
                     </table>
                 <?php else: ?>
                     <div class="alert alert-info">
-                        <?php echo empty($search) ? "No appointments found." : "No appointments match your search criteria."; ?>
+                        <?php echo empty($search) ? "No appointments found for your account." : "No appointments match your search criteria."; ?>
                     </div>
                 <?php endif; ?>
             </div>
         </main>
     </div>
-
-    <script>
-        // Function to show patient details
-        function showPatientDetails(patientId) {
-            // In a real application, you would fetch patient details via AJAX
-            // For this example, we'll just show a static modal
-            document.getElementById('patientModal').style.display = 'flex';
-        }
-
-        // Function to close modals
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        }
-
-        $blockchain_data = [
-            'appointmentId' => $appointment_id,
-            'patientsId' => $_POST['patientsId'],
-            'appointment_date' => $_POST['date'],
-            'appointment_time' => $_POST['time'],
-            'doctorId' => $_POST['doctorId'],
-            'reason' => $_POST['reason'],
-            'status' => 'scheduled'
-        ];
-
-        $ch = curl_init('http://localhost:3000/api/scheduleAppointment');
-    </script>
 </body>
 </html>

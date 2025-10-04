@@ -1,8 +1,11 @@
-{
-  "dependencies": {
-    "@truffle/hdwallet-provider": "^1.7.0",
-    "express": "^5.1.0",
-    "php": "^1.1.0",
-    "web3": "^1.10.4"
-  }
-}
+{ 
+  "name": "healthcare-blockchain", 
+  "version": "1.0.0", 
+  "scripts": { 
+    "node": "hardhat node" 
+  }, 
+  "devDependencies": { 
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0", 
+    "hardhat": "^2.19.0" 
+  } 
+} 

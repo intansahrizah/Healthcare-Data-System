@@ -1,4 +1,13 @@
 <?php
+// Start session and check if doctor is logged in
+session_start();
+if (!isset($_SESSION['doctorId']) || !isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: logintest_doctor.php");
+    exit();
+}
+
+$doctor_id = $_SESSION['doctorId'];
+
 // Database connection
 $servername = "localhost";
 $username = "root";
@@ -41,44 +50,52 @@ if ($nextMonth > 12) {
     $nextYear++;
 }
 
-// Fetch appointments for the selected month
+// Fetch appointments for the selected month FOR THIS DOCTOR ONLY
 $startDate = "$year-" . sprintf('%02d', $month) . "-01";
 $endDate = "$year-" . sprintf('%02d', $month) . "-" . $numberOfDays;
 
 $appointments = [];
-$appointment_result = $conn->query("
+$stmt = $conn->prepare("
     SELECT a.*, p.patientName as patient_name, d.doctorName
     FROM appointments a 
     LEFT JOIN patients p ON a.patientsId = p.patientsId 
     LEFT JOIN doctors d ON a.doctorId = d.doctorId
-    WHERE a.appointment_date BETWEEN '$startDate' AND '$endDate'
+    WHERE a.doctorId = ? AND a.appointment_date BETWEEN ? AND ?
     ORDER BY a.appointment_date, a.appointment_time
 ");
+$stmt->bind_param("iss", $doctor_id, $startDate, $endDate);
+$stmt->execute();
+$appointment_result = $stmt->get_result();
 
 if ($appointment_result && $appointment_result->num_rows > 0) {
     while($row = $appointment_result->fetch_assoc()) {
         $appointments[] = $row;
     }
 }
+$stmt->close();
 
-// Fetch upcoming appointments (next 30 days)
+// Fetch upcoming appointments (next 30 days) FOR THIS DOCTOR ONLY
 $today = date('Y-m-d');
 $nextMonthDate = date('Y-m-d', strtotime('+30 days'));
 $upcoming_appointments = [];
-$upcoming_result = $conn->query("
+$stmt_upcoming = $conn->prepare("
     SELECT a.*, p.patientName as patient_name, d.doctorName
     FROM appointments a 
     LEFT JOIN patients p ON a.patientsId = p.patientsId 
     LEFT JOIN doctors d ON a.doctorId = d.doctorId
-    WHERE a.appointment_date BETWEEN '$today' AND '$nextMonthDate'
+    WHERE a.doctorId = ? AND a.appointment_date BETWEEN ? AND ?
     ORDER BY a.appointment_date, a.appointment_time
 ");
+$stmt_upcoming->bind_param("iss", $doctor_id, $today, $nextMonthDate);
+$stmt_upcoming->execute();
+$upcoming_result = $stmt_upcoming->get_result();
 
 if ($upcoming_result && $upcoming_result->num_rows > 0) {
     while($row = $upcoming_result->fetch_assoc()) {
         $upcoming_appointments[] = $row;
     }
 }
+$stmt_upcoming->close();
 
 // Close connection
 $conn->close();
@@ -89,7 +106,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Healthcare System - Patient Appointment Calendar</title>
+    <title>Healthcare System - Doctor Appointment Calendar</title>
     <style>
         :root {
             --primary: #3498db;
@@ -485,13 +502,13 @@ $conn->close();
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>Welcome Patient</h1>
+                <h1>Welcome Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></h1>
                 <p>Healthcare Management System</p>
             </div>
 
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="dashboard_doctor.php..">
+                    <a href="dashboard_doctor.php">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
@@ -506,6 +523,12 @@ $conn->close();
                     <a href="#" class="active">
                         <i class="fas fa-calendar-check"></i>
                         Appointments
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="logout_doctor.php">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
                     </a>
                 </li>
             </ul>
@@ -602,8 +625,8 @@ $conn->close();
                              date('g:i A', strtotime($appt['appointment_time'])) . 
                              '</div>';
                         echo '<div class="appointment-patient">' . 
-                             'Appointment with Dr. ' . 
-                             htmlspecialchars($appt['doctorName']) . 
+                             'Patient: ' . 
+                             htmlspecialchars($appt['patient_name']) . 
                              '</div>';
                         echo '<div class="appointment-purpose">' . 
                              htmlspecialchars($appt['reason']) . 
@@ -683,7 +706,10 @@ $conn->close();
                 $.ajax({
                     url: 'get_appointment_details.php',
                     type: 'GET',
-                    data: { appointment_id: appointmentId },
+                    data: { 
+                        appointment_id: appointmentId,
+                        doctor_id: <?php echo $doctor_id; ?>
+                    },
                     success: function(response) {
                         $('#modal-body').html(response);
                     },

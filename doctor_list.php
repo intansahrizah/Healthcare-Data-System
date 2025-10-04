@@ -958,8 +958,8 @@ $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>MedCare Admin</h1>
-                <p>Healthcare Management</p>
+                <h1>Welcome Admin</h1>
+                <p>Healthcare Management System</p>
             </div>
             <ul class="nav-menu">
                 <li class="nav-item">
@@ -980,6 +980,11 @@ $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday
                 <li class="nav-item">
                     <a href="test_appoiment.php">
                         <i class="fas fa-calendar-check"></i> Appointments
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="logout_doctor.php">
+                        <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </li>
             </ul>
