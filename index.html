@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Data System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: url('https://i.pinimg.com/1200x/8b/c5/ec/8bc5ecc28b81eddc4b3f93717f5dc4d0.jpg');
+    backdrop-filter: blur(6px);
+    background-size: cover;     /* Makes the image cover the whole screen */
+    background-position: center; /* Keeps the image centered */
+    background-repeat: no-repeat; /* Prevents tiling */
+    background-attachment: fixed; /* Optional: keeps background fixed when scrolling */
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 250px;
+    height: 100vh;
+    background: rgba(30, 60, 114, 0.95);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-250px);
+}
+
+.menu-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 1001;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.logout-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    z-index: 1001;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.nav-menu {
+    list-style: none;
+    padding: 80px 0 20px 0;
+}
+
+.nav-item {
+    margin: 0;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 20px 30px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: #64b5f6;
+}
+
+.nav-link i {
+    margin-right: 15px;
+    font-size: 18px;
+    width: 20px;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 250px;
+    min-height: 100vh;
+    position: relative;
+    transition: margin-left 0.3s ease;
+}
+
+.main-content.expanded {
+    margin-left: 0;
+}
+
+/* Hero Section */
+.hero-section {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background Animation */
+.bg-animation {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+    z-index: 1;
+}
+
+.floating-element {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    animation: float 6s ease-in-out infinite;
+}
+
+.floating-element:nth-child(1) {
+    width: 100px;
+    height: 100px;
+    top: 20%;
+    left: 10%;
+    animation-delay: 0s;
+}
+
+.floating-element:nth-child(2) {
+    width: 60px;
+    height: 60px;
+    top: 60%;
+    right: 20%;
+    animation-delay: 2s;
+}
+
+.floating-element:nth-child(3) {
+    width: 80px;
+    height: 80px;
+    bottom: 20%;
+    left: 60%;
+    animation-delay: 4s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-20px) rotate(180deg);
+    }
+}
+
+/* Medical Icons */
+.medical-icons {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+}
+
+.medical-icon {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 40px;
+    animation: pulse 4s infinite;
+}
+
+.medical-icon:nth-child(1) {
+    top: 15%;
+    left: 15%;
+    animation-delay: 0s;
+}
+
+.medical-icon:nth-child(2) {
+    top: 25%;
+    right: 15%;
+    animation-delay: 1s;
+}
+
+.medical-icon:nth-child(3) {
+    bottom: 30%;
+    left: 20%;
+    animation-delay: 2s;
+}
+
+.medical-icon:nth-child(4) {
+    bottom: 20%;
+    right: 25%;
+    animation-delay: 3s;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.3;
+        transform: scale(1.1);
+    }
+}
+
+/* Title Styles */
+.title {
+    text-align: center;
+    z-index: 10;
+    position: relative;
+}
+
+.title h1 {
+    font-size: 4rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    animation: slideInUp 1s ease-out;
+}
+
+.title p {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.9);
+    animation: slideInUp 1s ease-out 0.3s both;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ECG Line Animation */
+.ecg-line {
+    position: absolute;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 2px;
+    background: #64b5f6;
+    z-index: 5;
+    animation: ecgPulse 3s infinite;
+}
+
+@keyframes ecgPulse {
+    0%, 100% {
+        box-shadow: 0 0 10px #64b5f6;
+    }
+    50% {
+        box-shadow: 0 0 20px #64b5f6, 0 0 30px #64b5f6;
+    }
+}
+
+/* Data Visualization Elements */
+.data-viz {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+}
+
+.chart-element {
+    position: absolute;
+    border: 1px solid rgba(100, 181, 246, 0.3);
+    background: rgba(100, 181, 246, 0.1);
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.chart-1 {
+    width: 150px;
+    height: 100px;
+    top: 10%;
+    right: 10%;
+    animation: dataFlow 5s infinite;
+}
+
+.chart-2 {
+    width: 120px;
+    height: 80px;
+    bottom: 15%;
+    left: 10%;
+    animation: dataFlow 5s infinite 2s;
+}
+
+@keyframes dataFlow {
+    0%, 100% {
+        opacity: 0.1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.3;
+        transform: scale(1.05);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-250px);
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .title h1 {
+        font-size: 2.5rem;
+    }
+
+    .menu-toggle.active {
+        left: 270px;
+    }
+}
+</style>
+  
+    <!-- Menu Toggle Button -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Logout Button -->
+    <button class="logout-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="login_page.php" class="nav-link active" onclick="setActive(this)">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="HdsDoctor.html" class="nav-link" onclick="setActive(this)">
+                    <i class="fas fa-user-md"></i>
+                    Doctor
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="HDSadmin.html" class="nav-link" onclick="setActive(this)">
+                    <i class="fas fa-cog"></i>
+                    Admin
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <section class="hero-section">
+            <!-- Background Animation -->
+            <div class="bg-animation">
+                <div class="floating-element"></div>
+                <div class="floating-element"></div>
+                <div class="floating-element"></div>
+            </div>
+
+            <!-- Medical Icons -->
+            <div class="medical-icons">
+                <i class="fas fa-heartbeat medical-icon"></i>
+                <i class="fas fa-user-md medical-icon"></i>
+                <i class="fas fa-hospital medical-icon"></i>
+                <i class="fas fa-pills medical-icon"></i>
+            </div>
+
+            <!-- Data Visualization Elements -->
+            <div class="data-viz">
+                <div class="chart-element chart-1"></div>
+                <div class="chart-element chart-2"></div>
+            </div>
+
+            <!-- ECG Line -->
+            <div class="ecg-line"></div>
+
+            <!-- Main Title -->
+            <div class="title">
+                <h1>HEALTHCARE DATA SYSTEM</h1>
+                <p>Advanced Medical Data Management & Analytics Platform</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Toggle Sidebar
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const menuToggle = document.querySelector('.menu-toggle');
+    
+    sidebar.classList.toggle('collapsed');
+    mainContent.classList.toggle('expanded');
+    menuToggle.classList.toggle('active');
+}
+
+// Set Active Navigation Link
+function setActive(element) {
+    // Remove active class from all links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Add active class to clicked link
+    element.classList.add('active');
+    
+    // Optional: Add functionality for different sections
+    const linkText = element.textContent.trim();
+    console.log(`Navigating to: ${linkText}`);
+    
+    // You can add more functionality here for each navigation item
+    switch(linkText) {
+        case 'Login':
+            // Handle login functionality
+            break;
+        case 'Patient':
+            // Handle patient section
+            break;
+        case 'Doctor':
+            // Handle doctor section
+            break;
+        case 'Admin':
+            // Handle admin section
+            break;
+    }
+}
+
+// Logout Function
+function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+        // Add logout functionality here
+        console.log('User logged out');
+        // You can redirect to login page or clear session
+        // window.location.href = 'login.html';
+    }
+}
+
+// Add some interactive animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate elements on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -100px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // Observe elements for animation
+    document.querySelectorAll('.chart-element').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Add mouse move effect for parallax
+    document.addEventListener('mousemove', function(e) {
+        const mouseX = e.clientX / window.innerWidth;
+        const mouseY = e.clientY / window.innerHeight;
+        
+        document.querySelectorAll('.floating-element').forEach((element, index) => {
+            const speed = (index + 1) * 0.5;
+            const x = (mouseX - 0.5) * speed * 20;
+            const y = (mouseY - 0.5) * speed * 20;
+            
+            element.style.transform = `translate(${x}px, ${y}px)`;
+        });
+    });
+});
+
+// Handle responsive behavior
+window.addEventListener('resize', function() {
+    if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.add('collapsed');
+        document.getElementById('mainContent').classList.add('expanded');
+    } else {
+        document.getElementById('sidebar').classList.remove('collapsed');
+        document.getElementById('mainContent').classList.remove('expanded');
+    }
+});
+
+// Initialize responsive state
+if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.getElementById('mainContent').classList.add('expanded');
+}
+    </script>
+</body>
+</html>

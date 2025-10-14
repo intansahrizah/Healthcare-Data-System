@@ -1,4 +1,11 @@
 <?php
+
+session_start();
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header("Location: login_page.php");
+    exit();
+}
+
 // Database configuration
 $servername = "localhost";
 $username = "root";
@@ -14,8 +21,8 @@ if ($conn->connect_error) {
 }
 
 // Handle duty status update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['doctorIFd']) && isset($_POST['on_duty'])) {
-    $doctor_id = intval($_POST['doctorId']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['doctorId']) && isset($_POST['on_duty'])) {
+    $doctorId = intval($_POST['doctorId']);
     $on_duty = intval($_POST['on_duty']);
     
     $update_sql = "UPDATE doctors SET on_duty = $on_duty WHERE doctorId = $doctorId";
@@ -590,6 +597,24 @@ $conn->close();
             background-color: var(--secondary);
         }
 
+        /* Login Notice */
+        .login-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .login-notice i {
+            color: #f39c12;
+            font-size: 20px;
+        }
+
         /* Responsive Design */
         @media (max-width: 1024px) {
             .dashboard-grid {
@@ -675,8 +700,8 @@ $conn->close();
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="logout_doctor.php">
-                        <i class="fas fa-sign-out-alt"></i> Logout
+                    <a href="logout_page.php">
+                        <i class="fas fa-sign-in-alt"></i> Logout
                     </a>
                 </li>
             </ul>
@@ -774,9 +799,6 @@ $conn->close();
                                                 <?php echo $doctor['on_duty'] ? 'ON DUTY' : 'OFF DUTY'; ?>
                                             </span>
                                         </div>
-                                        <?php if (isset($doctor['specialty'])): ?>
-                                            <div class="doctor-specialty"><?php echo htmlspecialchars($doctor['specialty']); ?></div>
-                                        <?php endif; ?>
                                         <?php if (isset($doctor['shift'])): ?>
                                             <span class="doctor-shift <?php echo $shift_class; ?>">
                                                 <?php echo htmlspecialchars($doctor['shift']); ?>
@@ -785,12 +807,17 @@ $conn->close();
                                     </div>
                                     <div class="duty-toggle">
                                         <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="doctor_id" value="<?php echo $doctor['doctorId']; ?>">
+                                            <input type="hidden" name="doctorId" value="<?php echo $doctor['doctorId']; ?>">
                                             <input type="hidden" name="on_duty" value="1">
+                                            <button type="submit" class="btn btn-success" style="padding: 5px 10px; font-size: 12px;">
+                                                <i class="fas fa-toggle-on"></i> On
+                                            </button>
                                         </form>
                                         <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="doctor_id" value="<?php echo $doctor['doctorId']; ?>">
+                                            <input type="hidden" name="doctorId" value="<?php echo $doctor['doctorId']; ?>">
                                             <input type="hidden" name="on_duty" value="0">
+                                            <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;">
+                                                <i class="fas fa-toggle-off"></i> Off
                                             </button>
                                         </form>
                                     </div>

@@ -418,7 +418,7 @@ $doctor_id = $_SESSION['doctorId'];
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="logout_doctor.php">
+                    <a href="logout_page.php">
                         <i class="fas fa-sign-out-alt"></i>
                         Logout
                     </a>

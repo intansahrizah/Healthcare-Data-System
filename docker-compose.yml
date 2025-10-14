@@ -1,26 +1,7 @@
-services: 
- 
-  blockchain: 
-    build: ./blockchain 
-    ports: 
-      - "8545:8545" 
-    volumes: 
-      - ./blockchain:/app 
- 
-  backend: 
-    build: ./backend 
-    ports: 
-      - "3001:3001" 
-    depends_on: 
-      - blockchain 
-    environment: 
-      - BLOCKCHAIN_RPC_URL=http://blockchain:8545 
-    volumes: 
-      - ./backend:/app 
- 
-  frontend: 
-    build: ./frontend 
-    ports: 
-      - "3000:3000" 
-    depends_on: 
-      - backend 
+services:
+  blockchain:
+    # ... other settings
+    build: 
+      context: ./blockchain  # <--- THIS IS THE KEY LINE
+      dockerfile: Dockerfile
+    # ... other settings

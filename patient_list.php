@@ -359,7 +359,7 @@ $conn->close();
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="logout_doctor.php">
+                    <a href="#">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </li>

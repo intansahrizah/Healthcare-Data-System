@@ -2,7 +2,7 @@
 // Start session and check if doctor is logged in
 session_start();
 if (!isset($_SESSION['doctorId']) || !isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: logintest_doctor.php");
+    header("Location: login_page.php");
     exit();
 }
 
@@ -526,7 +526,7 @@ $conn->close();
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="logout_doctor.php">
+                    <a href="logout_page.php">
                         <i class="fas fa-sign-out-alt"></i>
                         Logout
                     </a>

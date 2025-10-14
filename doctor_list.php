@@ -983,7 +983,7 @@ $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="logout_doctor.php">
+                    <a href="logout_page.php">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </li>

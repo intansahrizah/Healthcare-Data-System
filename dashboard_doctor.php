@@ -10,7 +10,7 @@ error_log("Session data: " . print_r($_SESSION, true));
 
 if (!isset($_SESSION['doctorId']) || !isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     error_log("Redirecting to login - Session missing or invalid");
-    header("Location: logintest_doctor.php");
+    header("Location: login_page.php");
     exit();
 }
 
@@ -422,7 +422,7 @@ $conn->close();
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="logout_doctor.php">
+                    <a href="logout_page.php">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </li>
