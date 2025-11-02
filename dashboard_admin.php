@@ -44,15 +44,58 @@ $today_patients_sql = "SELECT COUNT(*) as today_count FROM patients WHERE DATE(c
 $today_patients_result = $conn->query($today_patients_sql);
 $today_patients = $today_patients_result->fetch_assoc()['today_count'];
 
-// Fetch all doctors
-$doctors_sql = "SELECT doctorId, doctorName, shift, on_duty FROM doctors ORDER BY on_duty DESC, doctorName";
+// Fetch all doctors with their schedules
+$doctors_sql = "SELECT d.doctorId, d.doctorName, d.shift, d.on_duty, 
+                ds.day_of_week, ds.start_time, ds.end_time, ds.is_available
+                FROM doctors d 
+                LEFT JOIN doctor_schedules ds ON d.doctorId = ds.doctor_id 
+                WHERE ds.is_available = 1 OR ds.is_available IS NULL
+                ORDER BY d.on_duty DESC, d.doctorName";
 $doctors_result = $conn->query($doctors_sql);
 $doctors = [];
+$doctor_schedules = [];
 
 if ($doctors_result->num_rows > 0) {
     while($row = $doctors_result->fetch_assoc()) {
-        $doctors[] = $row;
+        $doctorId = $row['doctorId'];
+        
+        // Group schedules by doctor
+        if (!isset($doctor_schedules[$doctorId])) {
+            $doctor_schedules[$doctorId] = [
+                'doctorId' => $row['doctorId'],
+                'doctorName' => $row['doctorName'],
+                'shift' => $row['shift'],
+                'on_duty' => $row['on_duty'],
+                'schedules' => []
+            ];
+        }
+        
+        // Add schedule if available
+        if ($row['day_of_week'] && $row['is_available']) {
+            $doctor_schedules[$doctorId]['schedules'][] = [
+                'day_of_week' => $row['day_of_week'],
+                'start_time' => $row['start_time'],
+                'end_time' => $row['end_time']
+            ];
+        }
     }
+    
+    // Convert to simple array for display
+    $doctors = array_values($doctor_schedules);
+}
+
+// Get today's day name
+$todayDayName = strtolower(date('l')); // e.g., "monday"
+
+// Function to check if doctor is scheduled for today
+function isDoctorScheduledToday($schedules, $todayDayName) {
+    foreach ($schedules as $schedule) {
+        if (strtolower($schedule['day_of_week']) === $todayDayName) {
+            // Simple approach - if scheduled today, show as ON DUTY for entire day
+            return true;
+        }
+    }
+    return false;
 }
 
 // Fetch patients from database
@@ -615,6 +658,16 @@ $conn->close();
             font-size: 20px;
         }
 
+        /* Schedule Info Styles */
+        .doctor-schedule {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
         /* Responsive Design */
         @media (max-width: 1024px) {
             .dashboard-grid {
@@ -757,13 +810,15 @@ $conn->close();
                     </div>
                     <div class="stat-info">
                         <h3><?php 
-                            $on_duty_count = 0;
+                            $scheduled_today_count = 0;
                             foreach ($doctors as $doctor) {
-                                if ($doctor['on_duty']) $on_duty_count++;
+                                if (isDoctorScheduledToday($doctor['schedules'], $todayDayName)) {
+                                    $scheduled_today_count++;
+                                }
                             }
-                            echo $on_duty_count; 
+                            echo $scheduled_today_count; 
                         ?></h3>
-                        <p>Doctors on Duty</p>
+                        <p>Doctors Scheduled Today</p>
                     </div>
                 </div>
             </div>
@@ -773,7 +828,7 @@ $conn->close();
                 <!-- Doctors on Duty Panel -->
                 <div class="panel">
                     <div class="panel-header">
-                        <h3><i class="fas fa-user-md"></i> Manage Doctors on Duty</h3>
+                        <h3><i class="fas fa-user-md"></i> Manage Doctors on Duty (Based on Today's Schedule)</h3>
                     </div>
                     <div class="panel-body">
                         <?php if (count($doctors) > 0): ?>
@@ -787,6 +842,11 @@ $conn->close();
                                             $shift_class = 'shift-night';
                                         }
                                     }
+                                    
+                                    // Check if doctor is scheduled for today
+                                    $isScheduledToday = isDoctorScheduledToday($doctor['schedules'], $todayDayName);
+                                    $dutyStatus = $isScheduledToday ? 'ON DUTY' : 'OFF DUTY';
+                                    $dutyStatusClass = $isScheduledToday ? 'status-on' : 'status-off';
                                 ?>
                                 <li class="doctor-item">
                                     <div class="doctor-avatar">
@@ -795,8 +855,8 @@ $conn->close();
                                     <div class="doctor-info">
                                         <div class="doctor-name">
                                             <?php echo htmlspecialchars($doctor['doctorName']); ?>
-                                            <span class="duty-status <?php echo $doctor['on_duty'] ? 'status-on' : 'status-off'; ?>">
-                                                <?php echo $doctor['on_duty'] ? 'ON DUTY' : 'OFF DUTY'; ?>
+                                            <span class="duty-status <?php echo $dutyStatusClass; ?>">
+                                                <?php echo $dutyStatus; ?>
                                             </span>
                                         </div>
                                         <?php if (isset($doctor['shift'])): ?>
@@ -804,22 +864,28 @@ $conn->close();
                                                 <?php echo htmlspecialchars($doctor['shift']); ?>
                                             </span>
                                         <?php endif; ?>
-                                    </div>
-                                    <div class="duty-toggle">
-                                        <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="doctorId" value="<?php echo $doctor['doctorId']; ?>">
-                                            <input type="hidden" name="on_duty" value="1">
-                                            <button type="submit" class="btn btn-success" style="padding: 5px 10px; font-size: 12px;">
-                                                <i class="fas fa-toggle-on"></i> On
-                                            </button>
-                                        </form>
-                                        <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="doctorId" value="<?php echo $doctor['doctorId']; ?>">
-                                            <input type="hidden" name="on_duty" value="0">
-                                            <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;">
-                                                <i class="fas fa-toggle-off"></i> Off
-                                            </button>
-                                        </form>
+                                        
+                                        <!-- Display today's schedule if available -->
+                                        <?php 
+                                        $todaySchedule = null;
+                                        foreach ($doctor['schedules'] as $schedule) {
+                                            if (strtolower($schedule['day_of_week']) === $todayDayName) {
+                                                $todaySchedule = $schedule;
+                                                break;
+                                            }
+                                        }
+                                        ?>
+                                        <?php if ($todaySchedule): ?>
+                                            <div class="doctor-schedule">
+                                                <i class="fas fa-clock"></i> 
+                                                Today: <?php echo date('g:i A', strtotime($todaySchedule['start_time'])); ?> - 
+                                                <?php echo date('g:i A', strtotime($todaySchedule['end_time'])); ?>
+                                            </div>
+                                        <?php elseif ($doctor['schedules']): ?>
+                                            <div class="doctor-schedule" style="color: #999;">
+                                                <i class="fas fa-calendar-times"></i> Not scheduled today
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </li>
                                 <?php endforeach; ?>

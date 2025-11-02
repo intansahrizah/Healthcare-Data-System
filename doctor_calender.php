@@ -502,7 +502,7 @@ $conn->close();
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>Welcome Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></h1>
+                <h1>Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></h1>
                 <p>Healthcare Management System</p>
             </div>
 

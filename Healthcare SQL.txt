@@ -1,0 +1,68 @@
+CREATE TABLE admins (
+    admin_id INT PRIMARY KEY,
+    username VARCHAR(255),
+    email VARCHAR(255),
+    password_hash VARCHAR(255),
+    full_name VARCHAR(255),
+    created_at TIMESTAMP,
+    last_login TIMESTAMP,
+    is_active TINYINT
+);
+
+CREATE TABLE appointments (
+    appointmentId INT PRIMARY KEY,
+    patientsId INT,
+    appointment_date DATE,
+    appointment_time TIME,
+    doctorId INT,
+    reason TEXT,
+    status VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE TABLE doctors (
+    doctorId INT PRIMARY KEY,
+    doctorName VARCHAR(255),
+    shift VARCHAR(255),
+    on_duty TINYINT,
+    email VARCHAR(255),
+    license_hash VARCHAR(255),
+    phone VARCHAR(255),
+    password_hash VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE TABLE doctors_schedules (
+    doctorId INT,
+    doctor_id INT,
+    day_of_week ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
+    start_time TIME,
+    end_time TIME,
+    is_available TINYINT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE TABLE medical_history (
+    history_id INT PRIMARY KEY,
+    patientsId INT,
+    visit_date DATETIME,
+    diagnosis TEXT,
+    treatment TEXT,
+    doctor_notes TEXT
+);
+
+CREATE TABLE patients (
+    patientsId INT PRIMARY KEY,
+    patientName VARCHAR(255),
+    ic_number VARCHAR(255),
+    gender ENUM('Male', 'Female'),
+    email VARCHAR(255),
+    phone VARCHAR(255),
+    address TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);

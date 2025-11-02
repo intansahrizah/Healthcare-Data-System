@@ -186,7 +186,9 @@ $conn->close();
 function getSchedulesForDay($schedules, $dayName) {
     $daySchedules = [];
     foreach ($schedules as $schedule) {
-        if (strtolower($schedule['day_of_week']) === strtolower($dayName)) {
+        // FIX: Check if day_of_week exists and is not null
+        $scheduleDay = $schedule['day_of_week'] ?? '';
+        if (strtolower($scheduleDay) === strtolower($dayName)) {
             $daySchedules[] = $schedule;
         }
     }
@@ -1062,10 +1064,18 @@ $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday
                                         <?php
                                         $daySchedules = getSchedulesForDay($schedules, $day);
                                         foreach ($daySchedules as $schedule): 
+                                            // FIX: Check for null values before passing to htmlspecialchars
+                                            $doctorName = $schedule['doctorName'] ?? '';
+                                            $startTime = $schedule['start_time'] ?? '';
+                                            $endTime = $schedule['end_time'] ?? '';
+                                            
+                                            // Format times only if they exist
+                                            $formattedStartTime = $startTime ? date('g:i A', strtotime($startTime)) : 'N/A';
+                                            $formattedEndTime = $endTime ? date('g:i A', strtotime($endTime)) : 'N/A';
                                         ?>
-                                            <div class="schedule-event" title="<?php echo htmlspecialchars($schedule['doctorName'] . ' - ' . date('g:i A', strtotime($schedule['start_time'])) . ' to ' . date('g:i A', strtotime($schedule['end_time']))); ?>">
-                                                <strong><?php echo htmlspecialchars($schedule['doctorName']); ?></strong><br>
-                                                <?php echo date('g:i A', strtotime($schedule['start_time'])); ?>-<?php echo date('g:i A', strtotime($schedule['end_time'])); ?>
+                                            <div class="schedule-event" title="<?php echo htmlspecialchars($doctorName . ' - ' . $formattedStartTime . ' to ' . $formattedEndTime); ?>">
+                                                <strong><?php echo htmlspecialchars($doctorName); ?></strong><br>
+                                                <?php echo $formattedStartTime; ?>-<?php echo $formattedEndTime; ?>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
@@ -1076,13 +1086,21 @@ $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday
                         <div class="schedule-list">
                             <h3>Today's Schedules (<?php echo ucfirst($todayDayName); ?>)</h3>
                             <?php if (count($todays_schedules) > 0): ?>
-                                <?php foreach($todays_schedules as $schedule): ?>
+                                <?php foreach($todays_schedules as $schedule): 
+                                    // FIX: Apply the same null checks for today's schedules
+                                    $doctorName = $schedule['doctorName'] ?? 'Unknown Doctor';
+                                    $startTime = $schedule['start_time'] ?? '';
+                                    $endTime = $schedule['end_time'] ?? '';
+                                    
+                                    $formattedStartTime = $startTime ? date('g:i A', strtotime($startTime)) : 'N/A';
+                                    $formattedEndTime = $endTime ? date('g:i A', strtotime($endTime)) : 'N/A';
+                                ?>
                                     <div class="schedule-item">
                                         <div class="schedule-time">
-                                            <?php echo date('g:i A', strtotime($schedule['start_time'])); ?> - 
-                                            <?php echo date('g:i A', strtotime($schedule['end_time'])); ?>
+                                            <?php echo $formattedStartTime; ?> - 
+                                            <?php echo $formattedEndTime; ?>
                                         </div>
-                                        <div class="schedule-doctor"> <?php echo htmlspecialchars($schedule['doctorName']); ?></div>
+                                        <div class="schedule-doctor"><?php echo htmlspecialchars($doctorName); ?></div>
                                     </div>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -1183,14 +1201,7 @@ $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday
                                                     <i class="fas <?php echo $doctor['on_duty'] ? 'fa-user-times' : 'fa-user-check'; ?>"></i>
                                                 </button>
                                             </form>
-                                            
-                                            <form method="POST" style="display: inline;">
-                                                <input type="hidden" name="doctor_id" value="<?php echo $doctor['doctorId']; ?>">
-                                                <button type="submit" name="edit_doctor" class="action-btn" title="Edit Doctor">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            </form>
-                                            
+                                        
                                             <button class="action-btn schedule-btn" 
                                                     data-doctor-id="<?php echo $doctor['doctorId']; ?>"
                                                     data-doctor-name="<?php echo htmlspecialchars($doctor['doctorName']); ?>"

@@ -48,6 +48,55 @@ if ($historyResult->num_rows > 0) {
     }
 }
 
+// Handle blockchain address generation/update
+$blockchainMessage = '';
+$blockchainAddress = $patient['blockchain_address'] ?? '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'generate_address') {
+        // Generate a new blockchain address (simulated)
+        $newAddress = '0x' . bin2hex(random_bytes(20));
+        
+        // Update the patient record with the new blockchain address
+        $updateSql = "UPDATE patients SET blockchain_address = ? WHERE patientsId = ?";
+        $updateStmt = $conn->prepare($updateSql);
+        $updateStmt->bind_param("si", $newAddress, $patientId);
+        
+        if ($updateStmt->execute()) {
+            $blockchainAddress = $newAddress;
+            $blockchainMessage = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Blockchain address generated successfully!</div>';
+            
+            // Update the patient array with the new address
+            $patient['blockchain_address'] = $newAddress;
+        } else {
+            $blockchainMessage = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error generating blockchain address.</div>';
+        }
+    }
+    
+    if ($_POST['action'] === 'update_address' && !empty($_POST['custom_address'])) {
+        $customAddress = trim($_POST['custom_address']);
+        
+        // Basic validation for blockchain address format (Ethereum-like)
+        if (preg_match('/^0x[a-fA-F0-9]{40}$/', $customAddress)) {
+            $updateSql = "UPDATE patients SET blockchain_address = ? WHERE patientsId = ?";
+            $updateStmt = $conn->prepare($updateSql);
+            $updateStmt->bind_param("si", $customAddress, $patientId);
+            
+            if ($updateStmt->execute()) {
+                $blockchainAddress = $customAddress;
+                $blockchainMessage = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Blockchain address updated successfully!</div>';
+                
+                // Update the patient array with the new address
+                $patient['blockchain_address'] = $customAddress;
+            } else {
+                $blockchainMessage = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error updating blockchain address.</div>';
+            }
+        } else {
+            $blockchainMessage = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Invalid blockchain address format. Must be a valid Ethereum address (0x followed by 40 hex characters).</div>';
+        }
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -212,6 +261,14 @@ if ($historyResult->num_rows > 0) {
             background-color: #219653;
         }
 
+        .btn-warning {
+            background-color: var(--warning);
+        }
+
+        .btn-warning:hover {
+            background-color: #d35400;
+        }
+
         /* Patient Summary */
         .patient-summary {
             background: var(--white);
@@ -242,9 +299,72 @@ if ($historyResult->num_rows > 0) {
         /* Blockchain Info */
         .blockchain-info {
             background: #e8f5e8;
-            padding: 15px;
+            padding: 1.5rem;
             border-radius: 8px;
-            margin: 20px 0;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--success);
+        }
+
+        .blockchain-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .blockchain-header h3 {
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .blockchain-header h3 i {
+            color: var(--success);
+        }
+
+        .blockchain-address {
+            font-family: monospace;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            word-break: break-all;
+            margin-bottom: 1rem;
+        }
+
+        .blockchain-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .address-form {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
         }
 
         /* Medical History List */
@@ -380,6 +500,16 @@ if ($historyResult->num_rows > 0) {
                 align-items: flex-start;
                 gap: 1rem;
             }
+            
+            .blockchain-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .blockchain-actions {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -426,6 +556,8 @@ if ($historyResult->num_rows > 0) {
                 </div>
             </div>
 
+            <?php echo $blockchainMessage; ?>
+
             <!-- Patient Summary -->
             <div class="patient-summary">
                 <div class="summary-item">
@@ -443,6 +575,48 @@ if ($historyResult->num_rows > 0) {
                 <div class="summary-item">
                     <span class="summary-label">Phone Number</span>
                     <span class="summary-value"><?php echo htmlspecialchars($patient['phone']); ?></span>
+                </div>
+            </div>
+
+            <!-- Blockchain Information -->
+            <div class="blockchain-info">
+                <div class="blockchain-header">
+                    <h3><i class="fab fa-ethereum"></i> Blockchain Identity</h3>
+                    <div class="blockchain-actions">
+                    </div>
+                </div>
+
+                <?php if (!empty($blockchainAddress)): ?>
+                    <div class="blockchain-address">
+                        <strong>Address:</strong> <?php echo htmlspecialchars($blockchainAddress); ?>
+                    </div>
+                    <div class="blockchain-status">
+                        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                        <strong>Status:</strong> Active - Medical records can be stored on blockchain
+                    </div>
+                <?php else: ?>
+                    <div class="blockchain-address">
+                        <strong>Address:</strong> Not assigned
+                    </div>
+                    <div class="blockchain-status">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+                        <strong>Status:</strong> Inactive - Generate a blockchain address to enable secure record storage
+                    </div>
+                <?php endif; ?>
+
+                <div id="custom-address-form" style="display: none;">
+                    <form method="POST" class="address-form">
+                        <div class="form-group">
+                            <label for="custom_address">Enter Custom Blockchain Address:</label>
+                            <input type="text" id="custom_address" name="custom_address" class="form-control" 
+                                   placeholder="0x..." pattern="^0x[a-fA-F0-9]{40}$" 
+                                   title="Ethereum address format: 0x followed by 40 hexadecimal characters">
+                            <small style="color: #666; font-size: 12px;">Format: 0x followed by 40 hexadecimal characters (0-9, a-f, A-F)</small>
+                        </div>
+                        <button type="submit" name="action" value="update_address" class="btn btn-success">
+                            <i class="fas fa-save"></i> Save Custom Address
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -491,9 +665,27 @@ if ($historyResult->num_rows > 0) {
             </div>
         </main>
     </div>
+
+    <script>
+        // Toggle custom address form
+        document.getElementById('toggle-address-form').addEventListener('click', function() {
+            const form = document.getElementById('custom-address-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Copy blockchain address to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Blockchain address copied to clipboard!');
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+    </script>
 </body>
 </html>
 
 <?php
 $conn->close();
 ?>
+[file content end]

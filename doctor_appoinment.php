@@ -30,6 +30,8 @@ $doctor_id = $_SESSION['doctorId'];
             --white: #ffffff;
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             --transition: all 0.3s ease;
+            --blockchain: #8e44ad;
+            --blockchain-light: #9b59b6;
         }
         * {
             margin: 0;
@@ -299,6 +301,109 @@ $doctor_id = $_SESSION['doctorId'];
             opacity: 0.9;
         }
 
+        /* Blockchain Button */
+        .blockchain-btn {
+            background: var(--blockchain);
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .blockchain-btn:hover {
+            background: var(--blockchain-light);
+            transform: translateY(-2px);
+            color: white;
+            opacity: 0.9;
+        }
+
+        /* Blockchain Info Panel */
+        .blockchain-panel {
+            background: linear-gradient(135deg, var(--blockchain), var(--blockchain-light));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .blockchain-panel h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .blockchain-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .blockchain-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .blockchain-item label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .blockchain-address {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .blockchain-badge {
+            background-color: var(--blockchain);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            display: inline-block;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .no-blockchain {
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
         /* Message Styles */
         .alert {
             padding: 15px;
@@ -359,6 +464,10 @@ $doctor_id = $_SESSION['doctorId'];
                 align-items: flex-start;
                 gap: 5px;
             }
+
+            .blockchain-info {
+                grid-template-columns: 1fr;
+            }
         }
 
         .stats-container {
@@ -394,7 +503,7 @@ $doctor_id = $_SESSION['doctorId'];
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>Welcome Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></h1>
+                <h1>Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></h1>
                 <p>Healthcare Management System</p>
             </div>
 
@@ -432,6 +541,9 @@ $doctor_id = $_SESSION['doctorId'];
                 <h2>Doctor Appointment Management</h2>
                 <div class="user-profile">
                     <span>Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></span>
+                    <a href="#" class="btn blockchain-btn" onclick="showBlockchainInfo()" style="margin-left: 10px;">
+                        <i class="fas fa-link"></i> Blockchain Info
+                    </a>
                 </div>
             </div>
 
@@ -495,8 +607,8 @@ $doctor_id = $_SESSION['doctorId'];
                 }
             }
 
-            // Fetch appointments from database FOR THIS DOCTOR ONLY
-            $sql = "SELECT a.*, p.patientName as patient_name, p.patientsId as patient_id
+            // Fetch appointments from database FOR THIS DOCTOR ONLY with blockchain info
+            $sql = "SELECT a.*, p.patientName as patient_name, p.patientsId as patient_id, p.blockchain_address as patient_blockchain
                     FROM appointments a 
                     JOIN patients p ON a.patientsId = p.patientsId 
                     WHERE a.doctorId = ?";
@@ -521,6 +633,14 @@ $doctor_id = $_SESSION['doctorId'];
 
             // Close connection
             $conn->close();
+
+            // Blockchain contract addresses (same as patient_list.php)
+            $blockchainConfig = [
+                'patientRecordSystem' => '0x1F572dfb0120c0aa7484EFb84B7B0680DFA51966',
+                'medicalRecord' => '0xDb0287AA8061e52D5578C8eDF57729106ad81630',
+                'network' => 'Ganache Local (5777)',
+                'rpcUrl' => 'http://127.0.0.1:7545'
+            ];
             ?>
 
             <!-- Display success/error messages -->
@@ -531,6 +651,44 @@ $doctor_id = $_SESSION['doctorId'];
             <?php if (!empty($error_message)): ?>
                 <div class="alert alert-error"><?php echo $error_message; ?></div>
             <?php endif; ?>
+
+            <!-- Blockchain Information Panel -->
+            <div class="blockchain-panel">
+                <h3><i class="fas fa-cube"></i> Blockchain Network Information</h3>
+                <div class="blockchain-info">
+                    <div class="blockchain-item">
+                        <label><i class="fas fa-network-wired"></i> Network</label>
+                        <div><?php echo htmlspecialchars($blockchainConfig['network']); ?></div>
+                    </div>
+                    <div class="blockchain-item">
+                        <label><i class="fas fa-hospital-user"></i> Patient Record System</label>
+                        <div class="blockchain-address">
+                            <?php echo htmlspecialchars($blockchainConfig['patientRecordSystem']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $blockchainConfig['patientRecordSystem']; ?>')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div class="blockchain-item">
+                        <label><i class="fas fa-file-medical"></i> Medical Record System</label>
+                        <div class="blockchain-address">
+                            <?php echo htmlspecialchars($blockchainConfig['medicalRecord']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $blockchainConfig['medicalRecord']; ?>')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div class="blockchain-item">
+                        <label><i class="fas fa-server"></i> RPC URL</label>
+                        <div class="blockchain-address">
+                            <?php echo htmlspecialchars($blockchainConfig['rpcUrl']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $blockchainConfig['rpcUrl']; ?>')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="stats-container">
                 <div class="stat-card">
@@ -589,6 +747,7 @@ $doctor_id = $_SESSION['doctorId'];
                         <thead>
                             <tr>
                                 <th>Patient Name</th>
+                                <th>Blockchain Address</th>
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Reason</th>
@@ -603,6 +762,15 @@ $doctor_id = $_SESSION['doctorId'];
                                         <div class="patient-name-cell">
                                             <span class="patient-name"><?php echo htmlspecialchars($appointment['patient_name']); ?></span>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($appointment['patient_blockchain'])): ?>
+                                            <span class="blockchain-badge" title="<?php echo htmlspecialchars($appointment['patient_blockchain']); ?>">
+                                                <?php echo substr($appointment['patient_blockchain'], 0, 8) . '...' . substr($appointment['patient_blockchain'], -6); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="no-blockchain">Not on blockchain</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td><?php echo date('M j, Y', strtotime($appointment['appointment_date'])); ?></td>
                                     <td><?php echo date('g:i A', strtotime($appointment['appointment_time'])); ?></td>
@@ -634,12 +802,21 @@ $doctor_id = $_SESSION['doctorId'];
                                             </form>
                                         <?php endif; ?>
                                         
-                                        <!-- Medical History Button - Links to add_medical.php -->
-                                        <a href="add_medical.php?patientName=<?php echo urlencode($appointment['patient_name']); ?>" 
+                                        <!-- Medical History Button -->
+                                        <a href="add_medical.php?patientId=<?php echo $appointment['patient_id']; ?>" 
                                            class="medical-history-btn" 
                                            title="View/Add Medical History">
-                                            <i class="fas fa-file-medical"></i> Medical History
+                                            <i class="fas fa-file-medical"></i> Medical Info
                                         </a>
+
+                                        <!-- Blockchain Button -->
+                                        <?php if (!empty($appointment['patient_blockchain'])): ?>
+                                            <a href="#" class="blockchain-btn" 
+                                               onclick="viewPatientOnBlockchain('<?php echo $appointment['patient_blockchain']; ?>', '<?php echo htmlspecialchars($appointment['patient_name']); ?>')"
+                                               title="View on Blockchain">
+                                                <i class="fas fa-link"></i> Blockchain
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -653,5 +830,33 @@ $doctor_id = $_SESSION['doctorId'];
             </div>
         </main>
     </div>
+
+    <script>
+        // Copy to clipboard function
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Address copied to clipboard: ' + text);
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+
+        // View patient on blockchain function
+        function viewPatientOnBlockchain(address, patientName) {
+            if (!address) {
+                alert('This patient does not have a blockchain address yet.');
+                return;
+            }
+            alert('Viewing patient "' + patientName + '" on blockchain:\n' + address + '\n\nIn a real application, this would open a block explorer like Etherscan.');
+        }
+
+        // Show blockchain info
+        function showBlockchainInfo() {
+            alert('Blockchain Network: <?php echo $blockchainConfig['network']; ?>\n' +
+                  'Patient Record System: <?php echo $blockchainConfig['patientRecordSystem']; ?>\n' +
+                  'Medical Record System: <?php echo $blockchainConfig['medicalRecord']; ?>\n' +
+                  'RPC URL: <?php echo $blockchainConfig['rpcUrl']; ?>');
+        }
+    </script>
 </body>
 </html>

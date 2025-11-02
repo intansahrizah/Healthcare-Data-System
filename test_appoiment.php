@@ -50,36 +50,91 @@ if ($nextMonth > 12) {
     $nextYear++;
 }
 
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_appointment'])) {
-    $patientsId = $_POST['patientsId'];
-    $appointment_date = $_POST['appointment_date'];
-    $appointment_time = $_POST['appointment_time'];
-    $doctorId = $_POST['doctorId'];
-    $reason = $_POST['reason'];
-    $notes = $_POST['notes'];
-    $status = 'Scheduled'; // Default status
+// Handle form submission for new appointment
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (isset($_POST['save_appointment'])) {
+        $patientsId = $_POST['patientsId'];
+        $appointment_date = $_POST['appointment_date'];
+        $appointment_time = $_POST['appointment_time'];
+        $doctorId = $_POST['doctorId'];
+        $reason = $_POST['reason'];
+        $notes = $_POST['notes'];
+        $status = 'Scheduled'; // Default status
 
-    $sql = "INSERT INTO appointments (patientsId, appointment_date, appointment_time, doctorId, reason, notes, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)";
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("issssss", $patientsId, $appointment_date, $appointment_time, $doctorId, $reason, $notes, $status);
-    
-    if ($stmt->execute()) {
-        $success_message = "Appointment scheduled successfully!";
-        // Refresh the page to show the new appointment
-        header("Location: test_appoiment.php?month=$month&year=$year");
-        exit();
-    } else {
-        $error_message = "Error: " . $stmt->error;
-        // Check if it's the auto_increment error
-        if (strpos($stmt->error, "doesn't have a default value") !== false) {
-            $error_message .= "<br>Please run this SQL command: ALTER TABLE appointments MODIFY appointmentId INT AUTO_INCREMENT PRIMARY KEY";
+        $sql = "INSERT INTO appointments (patientsId, appointment_date, appointment_time, doctorId, reason, notes, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("issssss", $patientsId, $appointment_date, $appointment_time, $doctorId, $reason, $notes, $status);
+        
+        if ($stmt->execute()) {
+            $success_message = "Appointment scheduled successfully!";
+            // Refresh the page to show the new appointment
+            header("Location: test_appoiment.php?month=$month&year=$year");
+            exit();
+        } else {
+            $error_message = "Error: " . $stmt->error;
+            // Check if it's the auto_increment error
+            if (strpos($stmt->error, "doesn't have a default value") !== false) {
+                $error_message .= "<br>Please run this SQL command: ALTER TABLE appointments MODIFY appointmentId INT AUTO_INCREMENT PRIMARY KEY";
+            }
         }
+        
+        $stmt->close();
     }
     
-    $stmt->close();
+    // Handle simple status updates
+    if (isset($_POST['mark_attended'])) {
+        $appointmentId = $_POST['appointment_id'];
+        
+        $sql = "UPDATE appointments SET status = 'Attended' WHERE appointmentId = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $appointmentId);
+        
+        if ($stmt->execute()) {
+            $success_message = "Appointment marked as Attended!";
+            header("Location: test_appoiment.php?month=$month&year=$year");
+            exit();
+        } else {
+            $error_message = "Error updating status: " . $stmt->error;
+        }
+        $stmt->close();
+    }
+    
+    if (isset($_POST['mark_cancelled'])) {
+        $appointmentId = $_POST['appointment_id'];
+        
+        $sql = "UPDATE appointments SET status = 'Cancelled' WHERE appointmentId = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $appointmentId);
+        
+        if ($stmt->execute()) {
+            $success_message = "Appointment marked as Cancelled!";
+            header("Location: test_appoiment.php?month=$month&year=$year");
+            exit();
+        } else {
+            $error_message = "Error updating status: " . $stmt->error;
+        }
+        $stmt->close();
+    }
+    
+    // Handle appointment deletion
+    if (isset($_POST['delete_appointment'])) {
+        $appointmentId = $_POST['appointment_id'];
+        
+        $sql = "DELETE FROM appointments WHERE appointmentId = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $appointmentId);
+        
+        if ($stmt->execute()) {
+            $success_message = "Appointment deleted successfully!";
+            header("Location: test_appoiment.php?month=$month&year=$year");
+            exit();
+        } else {
+            $error_message = "Error deleting appointment: " . $stmt->error;
+        }
+        $stmt->close();
+    }
 }
 
 // Fetch appointments for the selected month
@@ -818,9 +873,10 @@ $conn->close();
                             // Show appointments for this day
                             foreach ($appointments as $appt) {
                                 if ($appt['appointment_date'] == $date) {
-                                    echo '<div class="appointment-event" data-appointment-id="' . $appt['appointmentId'] . '" title="' . 
+                                    $statusClass = 'status-' . strtolower($appt['status']);
+                                    echo '<div class="appointment-event ' . $statusClass . '" data-appointment-id="' . $appt['appointmentId'] . '" title="' . 
                                          htmlspecialchars($appt['patient_name']) . ' - ' . 
-                                         htmlspecialchars($appt['reason']) . '">' . 
+                                         htmlspecialchars($appt['reason']) . ' - ' . $appt['status'] . '">' . 
                                          htmlspecialchars($appt['patient_name']) . ' - ' . 
                                          date('g:i A', strtotime($appt['appointment_time'])) . 
                                          '</div>';
@@ -904,9 +960,9 @@ $conn->close();
                                      $appt['status'] . 
                                      '</span></td>';
                                 echo '<td>';
-                                echo '<button class="action-btn view-appointment" data-appointment-id="' . $appt['appointmentId'] . '"><i class="fas fa-eye"></i></button>';
-                                echo '<button class="action-btn"><i class="fas fa-edit"></i></button>';
-                                echo '<button class="action-btn"><i class="fas fa-times"></i></button>';
+                                echo '<button class="action-btn view-appointment" data-appointment-id="' . $appt['appointmentId'] . '" title="View Details"><i class="fas fa-eye"></i></button>';
+                                echo '<button class="action-btn edit-appointment" data-appointment-id="' . $appt['appointmentId'] . '" title="Edit Appointment"><i class="fas fa-edit"></i></button>';
+                                echo '<button class="action-btn delete-appointment" data-appointment-id="' . $appt['appointmentId'] . '" title="Delete Appointment"><i class="fas fa-times"></i></button>';
                                 echo '</td>';
                                 echo '</tr>';
                             }
@@ -1001,6 +1057,66 @@ $conn->close();
         </div>
     </div>
 
+    <!-- Status Update Modal -->
+    <div class="modal" id="statusModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Update Appointment Status</h3>
+                <button class="close-btn" id="closeStatusModal">&times;</button>
+            </div>
+            <form method="POST" action="" id="statusForm">
+                <input type="hidden" name="appointment_id" id="statusAppointmentId">
+                <input type="hidden" name="month" value="<?php echo $month; ?>">
+                <input type="hidden" name="year" value="<?php echo $year; ?>">
+                
+                <div class="form-group">
+                    <label for="new_status">New Status</label>
+                    <select id="new_status" name="new_status" required>
+                        <option value="Scheduled">Scheduled - Appointment is booked</option>
+                        <option value="Confirmed">Confirmed - Patient confirmed attendance</option>
+                        <option value="In Progress">In Progress - Appointment is ongoing</option>
+                        <option value="Completed">Completed - Doctor finished consultation</option>
+                        <option value="Cancelled">Cancelled - Appointment was cancelled</option>
+                        <option value="No Show">No Show - Patient didn't arrive</option>
+                        <option value="Rescheduled">Rescheduled - Appointment was rescheduled</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="status_notes">Status Notes (Optional)</label>
+                    <textarea id="status_notes" name="status_notes" placeholder="Add notes about this status change..."></textarea>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelStatusUpdate">Cancel</button>
+                    <button type="submit" class="btn" name="update_status">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Deletion</h3>
+                <button class="close-btn" id="closeDeleteModal">&times;</button>
+            </div>
+            <form method="POST" action="" id="deleteForm">
+                <input type="hidden" name="appointment_id" id="deleteAppointmentId">
+                <input type="hidden" name="month" value="<?php echo $month; ?>">
+                <input type="hidden" name="year" value="<?php echo $year; ?>">
+                
+                <p>Are you sure you want to delete this appointment? This action cannot be undone.</p>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelDelete">Cancel</button>
+                    <button type="submit" class="btn delete-btn" name="delete_appointment">Delete Appointment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
@@ -1036,6 +1152,12 @@ $conn->close();
                 if ($(event.target).is('#appointmentDetailModal')) {
                     $('#appointmentDetailModal').hide();
                 }
+                if ($(event.target).is('#statusModal')) {
+                    $('#statusModal').hide();
+                }
+                if ($(event.target).is('#deleteModal')) {
+                    $('#deleteModal').hide();
+                }
             });
 
             // Set today's date as default for the date field
@@ -1047,9 +1169,31 @@ $conn->close();
                 showAppointmentDetails(appointmentId);
             });
             
+            // Edit appointment button
+            $('.edit-appointment').on('click', function() {
+                const appointmentId = $(this).data('appointment-id');
+                updateAppointmentStatus(appointmentId);
+            });
+            
+            // Delete appointment button
+            $('.delete-appointment').on('click', function() {
+                const appointmentId = $(this).data('appointment-id');
+                confirmDelete(appointmentId);
+            });
+            
             // Close detail modal
             $('#closeDetailModal').on('click', function() {
                 $('#appointmentDetailModal').hide();
+            });
+            
+            // Close status modal
+            $('#closeStatusModal, #cancelStatusUpdate').on('click', function() {
+                $('#statusModal').hide();
+            });
+            
+            // Close delete modal
+            $('#closeDeleteModal, #cancelDelete').on('click', function() {
+                $('#deleteModal').hide();
             });
             
             // Function to show appointment details
@@ -1070,6 +1214,28 @@ $conn->close();
                     }
                 });
             }
+            
+            // Function to update appointment status
+            function updateAppointmentStatus(appointmentId) {
+                $('#statusAppointmentId').val(appointmentId);
+                $('#statusModal').show();
+            }
+            
+            // Function to confirm deletion
+            function confirmDelete(appointmentId) {
+                $('#deleteAppointmentId').val(appointmentId);
+                $('#deleteModal').show();
+            }
+            
+            // Quick status update buttons (if implemented in detail view)
+            $(document).on('click', '.status-btn', function() {
+                const appointmentId = $(this).data('appointment-id');
+                const newStatus = $(this).data('status');
+                
+                $('#statusAppointmentId').val(appointmentId);
+                $('#new_status').val(newStatus);
+                $('#statusModal').show();
+            });
         });
     </script>
 </body>
