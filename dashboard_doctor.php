@@ -1,126 +1,12 @@
 <?php
-// Start output buffering to prevent header errors
-ob_start();
-
 // Start session and check if doctor is logged in
 session_start();
-
-// Debug session data
-error_log("Session data: " . print_r($_SESSION, true));
-
 if (!isset($_SESSION['doctorId']) || !isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    error_log("Redirecting to login - Session missing or invalid");
-    header("Location: login_page.php");
+    header("Location: logintest_doctor.php");
     exit();
 }
 
 $doctor_id = $_SESSION['doctorId'];
-
-// Database configuration
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "healthcare_system";
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// Initialize variables with default values
-$total_patients = 0;
-$today_patients = 0;
-$today_appointments = 0;
-$pending_records = 0;
-$recent_patients = [];
-$upcoming_appointments = [];
-
-try {
-    // Fetch total patients count FOR THIS DOCTOR ONLY
-    $sql_total = "SELECT COUNT(*) as total FROM patients WHERE doctorId = ?";
-    $stmt_total = $conn->prepare($sql_total);
-    $stmt_total->bind_param("i", $doctor_id);
-    $stmt_total->execute();
-    $result_total = $stmt_total->get_result();
-    if ($result_total) {
-        $total_patients = $result_total->fetch_assoc()['total'];
-    }
-    $stmt_total->close();
-
-    // Fetch today's patients count FOR THIS DOCTOR ONLY
-    $sql_today = "SELECT COUNT(*) as today FROM patients WHERE doctorId = ? AND DATE(created_at) = CURDATE()";
-    $stmt_today = $conn->prepare($sql_today);
-    $stmt_today->bind_param("i", $doctor_id);
-    $stmt_today->execute();
-    $result_today = $stmt_today->get_result();
-    if ($result_today) {
-        $today_patients = $result_today->fetch_assoc()['today'];
-    }
-    $stmt_today->close();
-
-    // Fetch appointments for today FOR THIS DOCTOR ONLY
-    $sql_appointments = "SELECT COUNT(*) as appointments FROM appointments WHERE doctorId = ? AND DATE(appointment_date) = CURDATE()";
-    $stmt_appointments = $conn->prepare($sql_appointments);
-    $stmt_appointments->bind_param("i", $doctor_id);
-    $stmt_appointments->execute();
-    $result_appointments = $stmt_appointments->get_result();
-    if ($result_appointments) {
-        $today_appointments = $result_appointments->fetch_assoc()['appointments'];
-    }
-    $stmt_appointments->close();
-
-    // Fetch pending medical records
-    $sql_pending = "SELECT COUNT(*) as pending FROM medical_records mr 
-                   JOIN patients p ON mr.patient_id = p.patientsId 
-                   WHERE p.doctorId = ? AND mr.status = 'pending'";
-    $stmt_pending = $conn->prepare($sql_pending);
-    $stmt_pending->bind_param("i", $doctor_id);
-    $stmt_pending->execute();
-    $result_pending = $stmt_pending->get_result();
-    if ($result_pending) {
-        $pending_records = $result_pending->fetch_assoc()['pending'];
-    }
-    $stmt_pending->close();
-
-    // Fetch recent patients (last 5) FOR THIS DOCTOR ONLY
-    $sql_recent = "SELECT patientName, ic_number, created_at, patientsId FROM patients WHERE doctorId = ? ORDER BY created_at DESC LIMIT 5";
-    $stmt_recent = $conn->prepare($sql_recent);
-    $stmt_recent->bind_param("i", $doctor_id);
-    $stmt_recent->execute();
-    $result_recent = $stmt_recent->get_result();
-    if ($result_recent && $result_recent->num_rows > 0) {
-        while($row = $result_recent->fetch_assoc()) {
-            $recent_patients[] = $row;
-        }
-    }
-    $stmt_recent->close();
-
-    // Fetch upcoming appointments (next 3)
-    $sql_upcoming = "SELECT a.*, p.patientName, p.ic_number 
-                    FROM appointments a 
-                    JOIN patients p ON a.patientsId = p.patientsId 
-                    WHERE a.doctorId = ? AND a.appointment_date >= CURDATE() AND a.status IN ('Scheduled', 'Confirmed')
-                    ORDER BY a.appointment_date, a.appointment_time 
-                    LIMIT 3";
-    $stmt_upcoming = $conn->prepare($sql_upcoming);
-    $stmt_upcoming->bind_param("i", $doctor_id);
-    $stmt_upcoming->execute();
-    $result_upcoming = $stmt_upcoming->get_result();
-    if ($result_upcoming && $result_upcoming->num_rows > 0) {
-        while($row = $result_upcoming->fetch_assoc()) {
-            $upcoming_appointments[] = $row;
-        }
-    }
-    $stmt_upcoming->close();
-
-} catch (Exception $e) {
-    error_log("Database error: " . $e->getMessage());
-}
-
-$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -128,51 +14,45 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doctor Dashboard - Healthcare System</title>
+    <title>Healthcare Data Sharing - Doctor Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary: #3498db;
             --primary-dark: #2980b9;
-            --primary-light: #ebf5fb;
             --secondary: #2c3e50;
-            --success: #27ae60;
-            --success-light: #d5f4e6;
-            --warning: #f39c12;
-            --warning-light: #fef5e7;
+            --success: #2ecc71;
             --danger: #e74c3c;
-            --danger-light: #fdedec;
-            --info: #1abc9c;
-            --info-light: #e8f6f3;
+            --warning: #f39c12;
             --light: #f5f7fa;
             --dark: #333;
-            --white: #ffffff;
             --gray: #95a5a6;
+            --white: #ffffff;
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+            --blockchain: #8e44ad;
+            --blockchain-light: #9b59b6;
         }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
             background-color: #f5f7fa;
             background: url('https://gov-web-sing.s3.ap-southeast-1.amazonaws.com/uploads/2023/1/Wordpress-featured-images-48-1672795987342.jpg') no-repeat center center fixed;
             color: #333;
-            background-size: cover;
+            background-size: cover; 
         }
 
-        .app-container {
+        .container {
             display: flex;
             min-height: 100vh;
         }
 
-        /* Sidebar Styles - UNCHANGED */
+         /* Sidebar Styles */
         .sidebar {
             width: 250px;
             background-color: var(--secondary);
@@ -226,857 +106,824 @@ $conn->close();
             margin-right: 10px;
             font-size: 18px;
         }
-
-        /* Main Content Styles - ENHANCED */
+        
+        /* Main Content Styles */
         .main-content {
             flex: 1;
-            padding: 2rem;
-            overflow-y: auto;
+            padding: 30px;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: var(--white);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
         }
 
         .header h2 {
-            font-size: 1.8rem;
-            color: var(--secondary);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 28px;
+            color: #2c3e50;
+            margin: 0;
         }
 
-        .header h2 i {
-            color: var(--primary);
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .btn {
-            background: var(--primary);
-            color: white;
-            padding: 12px 20px;
-            text-decoration: none;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            box-shadow: var(--shadow);
-        }
-
-        .btn i {
-            margin-right: 8px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-            background: var(--primary-dark);
-        }
-
-        .btn-success {
-            background: var(--success);
-        }
-
-        .btn-success:hover {
-            background: #219653;
-        }
-
-        /* Welcome Banner */
-        .welcome-banner {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow-lg);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .welcome-banner::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 200%;
-            background: rgba(255, 255, 255, 0.1);
-            transform: rotate(30deg);
-        }
-
-        .welcome-banner h1 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            position: relative;
-        }
-
-        .welcome-banner p {
-            font-size: 1rem;
-            opacity: 0.9;
-            position: relative;
-        }
-
-        .banner-stats {
-            display: flex;
-            gap: 2rem;
-            margin-top: 1.5rem;
-            position: relative;
-        }
-
-        .banner-stat {
-            text-align: center;
-        }
-
-        .banner-stat .number {
-            font-size: 2rem;
-            font-weight: bold;
-            display: block;
-        }
-
-        .banner-stat .label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-
-        /* Enhanced Statistics Cards */
+        /* Dashboard Stats */
         .stats-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 20px;
-            margin-bottom: 2rem;
+            margin-bottom: 30px;
         }
 
         .stat-card {
-            background: var(--white);
-            border-radius: 12px;
+            background: white;
             padding: 25px;
+            border-radius: 12px;
             box-shadow: var(--shadow);
-            display: flex;
-            align-items: center;
-            transition: all 0.3s ease;
+            text-align: center;
+            transition: var(--transition);
             border-left: 4px solid var(--primary);
         }
 
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .stat-card.patients { border-left-color: var(--primary); }
-        .stat-card.today { border-left-color: var(--success); }
-        .stat-card.appointments { border-left-color: var(--warning); }
-        .stat-card.records { border-left-color: var(--info); }
+        .stat-card.patients {
+            border-left-color: var(--primary);
+        }
+
+        .stat-card.appointments {
+            border-left-color: var(--success);
+        }
+
+        .stat-card.pending {
+            border-left-color: var(--warning);
+        }
+
+        .stat-card.blockchain {
+            border-left-color: var(--blockchain);
+        }
 
         .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 24px;
-            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            opacity: 0.8;
         }
 
-        .stat-icon.patients {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        .stat-card.patients .stat-icon {
+            color: var(--primary);
         }
 
-        .stat-icon.today {
-            background: linear-gradient(135deg, var(--success), #219653);
+        .stat-card.appointments .stat-icon {
+            color: var(--success);
         }
 
-        .stat-icon.appointments {
-            background: linear-gradient(135deg, var(--warning), #e67e22);
+        .stat-card.pending .stat-icon {
+            color: var(--warning);
         }
 
-        .stat-icon.records {
-            background: linear-gradient(135deg, var(--info), #16a085);
+        .stat-card.blockchain .stat-icon {
+            color: var(--blockchain);
         }
 
-        .stat-info h3 {
-            font-size: 28px;
-            margin-bottom: 5px;
-            color: var(--dark);
-            font-weight: 700;
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+            color: var(--secondary);
         }
 
-        .stat-info p {
+        .stat-label {
             color: var(--gray);
             font-size: 14px;
-            margin-bottom: 8px;
-        }
-
-        .stat-trend {
-            font-size: 12px;
             font-weight: 500;
         }
 
-        .trend-up { color: var(--success); }
-        .trend-down { color: var(--danger); }
-
-        /* Dashboard Grid Layout */
-        .dashboard-grid {
+        /* Dashboard Sections */
+        .dashboard-sections {
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 25px;
-            margin-bottom: 2rem;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
         }
 
-        @media (max-width: 1200px) {
-            .dashboard-grid {
+        @media (max-width: 1024px) {
+            .dashboard-sections {
                 grid-template-columns: 1fr;
             }
         }
 
-        /* Enhanced Dashboard Sections */
-        .dashboard-section {
-            background: var(--white);
+        .section-card {
+            background: white;
             border-radius: 12px;
-            box-shadow: var(--shadow);
             padding: 25px;
-            margin-bottom: 2rem;
-            transition: all 0.3s ease;
-        }
-
-        .dashboard-section:hover {
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow);
         }
 
         .section-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid var(--light);
+            border-bottom: 1px solid #eee;
         }
 
         .section-header h3 {
             font-size: 1.3rem;
             color: var(--secondary);
+            margin: 0;
+        }
+
+        .section-header a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .section-header a:hover {
+            text-decoration: underline;
+        }
+
+        /* Patient List Styles */
+        .patient-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .patient-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-weight: 600;
-        }
-
-        .section-header h3 i {
-            color: var(--primary);
-        }
-
-        /* Enhanced Recent Patients Table */
-        .table-container {
-            overflow-x: auto;
-            border-radius: 8px;
-        }
-
-        .patient-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .patient-table th {
-            background-color: var(--primary-light);
-            text-align: left;
             padding: 15px;
-            font-weight: 600;
-            color: var(--secondary);
-            border-bottom: 2px solid var(--primary);
+            border-bottom: 1px solid #f0f0f0;
+            transition: var(--transition);
         }
 
-        .patient-table td {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+        .patient-item:hover {
+            background-color: #f8f9fa;
         }
 
-        .patient-table tr:hover {
-            background-color: var(--light);
+        .patient-item:last-child {
+            border-bottom: none;
         }
 
         .patient-avatar {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: var(--primary);
-            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
             font-weight: bold;
-            margin-right: 10px;
+            margin-right: 15px;
         }
 
         .patient-info {
-            display: flex;
-            align-items: center;
+            flex: 1;
         }
 
-        .action-btn {
+        .patient-name {
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 5px;
+        }
+
+        .patient-details {
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+
+        .patient-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
             padding: 8px 12px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s;
+            font-size: 0.8rem;
+            transition: var(--transition);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 5px;
         }
 
-        .action-btn.view {
-            background: var(--info);
-            color: white;
-        }
-
-        .action-btn:hover {
+        .btn:hover {
+            opacity: 0.9;
             transform: translateY(-2px);
-            box-shadow: var(--shadow);
         }
 
-        /* Upcoming Appointments */
-        .appointment-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .appointment-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background: var(--light);
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            border-left: 4px solid var(--primary);
-        }
-
-        .appointment-item:hover {
-            background: var(--primary-light);
-            transform: translateX(5px);
-        }
-
-        .appointment-time {
+        .btn-primary {
             background: var(--primary);
             color: white;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            min-width: 80px;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-blockchain {
+            background: var(--blockchain);
+            color: white;
+        }
+
+        /* Recent Activity */
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e3f2fd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin-right: 15px;
+            color: var(--primary);
         }
 
-        .appointment-time .time {
-            font-size: 1.1rem;
-            font-weight: bold;
-            display: block;
+        .activity-details {
+            flex: 1;
         }
 
-        .appointment-time .date {
-            font-size: 0.8rem;
-            opacity: 0.9;
-        }
-
-        .appointment-details h4 {
+        .activity-title {
+            font-weight: 500;
             margin-bottom: 5px;
-            color: var(--secondary);
         }
 
-        .appointment-details p {
+        .activity-time {
+            font-size: 0.8rem;
             color: var(--gray);
-            font-size: 0.9rem;
         }
 
         /* Quick Actions */
         .quick-actions {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
         }
 
-        .quick-action-btn {
-            background: var(--white);
-            border: 2px solid var(--light);
-            padding: 20px;
-            border-radius: 10px;
+        .action-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
             text-align: center;
-            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+
+        .action-icon {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .action-title {
+            font-weight: 600;
             color: var(--secondary);
-            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .action-description {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        /* Blockchain Panel */
+        .blockchain-panel {
+            background: linear-gradient(135deg, var(--blockchain), var(--blockchain-light));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .blockchain-panel h3 {
+            margin-bottom: 1rem;
             display: flex;
-            flex-direction: column;
             align-items: center;
             gap: 10px;
         }
 
-        .quick-action-btn:hover {
-            border-color: var(--primary);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow);
+        .blockchain-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
         }
 
-        .quick-action-btn i {
-            font-size: 2rem;
-            color: var(--primary);
+        .blockchain-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
         }
 
-        .quick-action-btn span {
-            font-weight: 500;
+        .blockchain-item label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .blockchain-address {
+            font-family: 'Courier New', monospace;
             font-size: 0.9rem;
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
         }
 
-        /* Chart Container */
-        .chart-container {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-            height: 300px;
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            font-size: 0.8rem;
         }
 
-        .no-data {
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Empty States */
+        .empty-state {
             text-align: center;
-            padding: 3rem;
+            padding: 40px 20px;
             color: var(--gray);
         }
 
-        .no-data i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
             opacity: 0.5;
         }
 
-        .no-data h3 {
-            margin-bottom: 10px;
-            color: var(--secondary);
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.6s ease-out;
+        .empty-state p {
+            margin-bottom: 15px;
         }
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .app-container {
+            .container {
                 flex-direction: column;
             }
-            
             .sidebar {
                 width: 100%;
-                padding: 1.5rem;
+                padding: 20px;
             }
-            
             .nav-menu {
                 display: flex;
                 overflow-x: auto;
-                padding-bottom: 0.5rem;
+                padding-bottom: 10px;
             }
-            
             .nav-item {
-                margin-right: 1rem;
+                margin-right: 15px;
                 margin-bottom: 0;
                 white-space: nowrap;
             }
             
             .stats-container {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-container {
                 grid-template-columns: 1fr;
             }
             
-            .header {
+            .patient-actions {
                 flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-            
-            .welcome-banner h1 {
-                font-size: 1.5rem;
-            }
-            
-            .banner-stats {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .dashboard-grid {
-                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar Navigation - UNCHANGED -->
+    <div class="container">
+        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
                 <h1>Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></h1>
                 <p>Healthcare Management System</p>
             </div>
+
             <ul class="nav-menu">
                 <li class="nav-item">
                     <a href="dashboard_doctor.php" class="active">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="doctor_appoinment.php">
-                        <i class="fas fa-user-injured"></i> Patients
+                        <i class="fas fa-user-injured"></i>
+                        Patients
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="doctor_calender.php">
-                        <i class="fas fa-calendar-check"></i> Appointments
+                        <i class="fas fa-calendar-check"></i>
+                        Appointments
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="logout_page.php">
-                        <i class="fas fa-sign-out-alt"></i> Logout
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
                     </a>
                 </li>
             </ul>
         </aside>
 
-        <!-- Main Content Area - ENHANCED -->
+        <!-- Main Content Area -->
         <main class="main-content">
-            <!-- Header -->
-            <div class="header fade-in">
-                <h2><i class="fas fa-tachometer-alt"></i> Doctor Dashboard</h2>
-                <div class="header-actions">
-                    <a href="patients_register.php" class="btn">
-                        <i class="fas fa-plus"></i> Add New Patient
+            <div class="header">
+                <h2>Doctor Dashboard</h2>
+                <div class="user-profile">
+                    <span>Welcome, Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?></span>
+                    <a href="#" class="btn btn-blockchain" onclick="showBlockchainInfo()" style="margin-left: 10px;">
+                        <i class="fas fa-link"></i> Blockchain Info
                     </a>
                 </div>
             </div>
 
-            <!-- Welcome Banner -->
-            <div class="welcome-banner fade-in">
-                <h1>Welcome back, Dr. <?php echo htmlspecialchars($_SESSION['doctor_name']); ?>! 👋</h1>
-                <p>Here's what's happening with your practice today.</p>
-                <div class="banner-stats">
-                    <div class="banner-stat">
-                        <span class="number"><?php echo $today_appointments; ?></span>
-                        <span class="label">Today's Appointments</span>
+            <?php
+            // Database connection
+            $servername = "localhost";
+            $username = "root";
+            $password = "";
+            $dbname = "healthcare_system";
+
+            $conn = new mysqli($servername, $username, $password, $dbname);
+
+            if ($conn->connect_error) {
+                die("Connection failed: " . $conn->connect_error);
+            }
+
+            // Get dashboard statistics
+            $total_patients = 0;
+            $total_appointments = 0;
+            $pending_appointments = 0;
+            $patients_with_blockchain = 0;
+
+            // Total patients with appointments for this doctor
+            $sql = "SELECT COUNT(DISTINCT p.patientsId) as total 
+                    FROM patients p 
+                    JOIN appointments a ON p.patientsId = a.patientsId 
+                    WHERE a.doctorId = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $doctor_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($row = $result->fetch_assoc()) {
+                $total_patients = $row['total'];
+            }
+            $stmt->close();
+
+            // Total appointments
+            $sql = "SELECT COUNT(*) as total FROM appointments WHERE doctorId = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $doctor_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($row = $result->fetch_assoc()) {
+                $total_appointments = $row['total'];
+            }
+            $stmt->close();
+
+            // Pending appointments (Scheduled status)
+            $sql = "SELECT COUNT(*) as total FROM appointments WHERE doctorId = ? AND status = 'Scheduled'";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $doctor_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($row = $result->fetch_assoc()) {
+                $pending_appointments = $row['total'];
+            }
+            $stmt->close();
+
+            // Patients with blockchain addresses
+            $sql = "SELECT COUNT(DISTINCT p.patientsId) as total 
+                    FROM patients p 
+                    JOIN appointments a ON p.patientsId = a.patientsId 
+                    WHERE a.doctorId = ? AND p.blockchain_address IS NOT NULL AND p.blockchain_address != ''";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $doctor_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($row = $result->fetch_assoc()) {
+                $patients_with_blockchain = $row['total'];
+            }
+            $stmt->close();
+
+            // Get recent patients (last 5)
+            $recent_patients = [];
+            $sql = "SELECT DISTINCT p.patientsId, p.patientName, p.email, p.blockchain_address,
+                           COUNT(a.appointmentId) as appointment_count,
+                           MAX(a.appointment_date) as last_visit
+                    FROM patients p 
+                    JOIN appointments a ON p.patientsId = a.patientsId 
+                    WHERE a.doctorId = ?
+                    GROUP BY p.patientsId, p.patientName, p.email, p.blockchain_address
+                    ORDER BY last_visit DESC 
+                    LIMIT 5";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $doctor_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            while ($row = $result->fetch_assoc()) {
+                $recent_patients[] = $row;
+            }
+            $stmt->close();
+
+            // Get recent activity (appointments)
+            $recent_activity = [];
+            $sql = "SELECT a.*, p.patientName 
+                    FROM appointments a 
+                    JOIN patients p ON a.patientsId = p.patientsId 
+                    WHERE a.doctorId = ? 
+                    ORDER BY a.appointment_date DESC, a.appointment_time DESC 
+                    LIMIT 5";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $doctor_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            while ($row = $result->fetch_assoc()) {
+                $recent_activity[] = $row;
+            }
+            $stmt->close();
+
+            $conn->close();
+
+            // Blockchain config
+            $blockchainConfig = [
+                'patientRecordSystem' => '0x1F572dfb0120c0aa7484EFb84B7B0680DFA51966',
+                'medicalRecord' => '0xDb0287AA8061e52D5578C8eDF57729106ad81630',
+                'network' => 'Ganache Local (5777)',
+                'rpcUrl' => 'http://127.0.0.1:7545'
+            ];
+            ?>
+
+            <!-- Blockchain Information Panel -->
+            <div class="blockchain-panel">
+                <h3><i class="fas fa-cube"></i> Blockchain Network Information</h3>
+                <div class="blockchain-info">
+                    <div class="blockchain-item">
+                        <label><i class="fas fa-network-wired"></i> Network</label>
+                        <div><?php echo htmlspecialchars($blockchainConfig['network']); ?></div>
                     </div>
-                    <div class="banner-stat">
-                        <span class="number"><?php echo $today_patients; ?></span>
-                        <span class="label">New Patients Today</span>
+                    <div class="blockchain-item">
+                        <label><i class="fas fa-hospital-user"></i> Patient Record System</label>
+                        <div class="blockchain-address">
+                            <?php echo htmlspecialchars($blockchainConfig['patientRecordSystem']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $blockchainConfig['patientRecordSystem']; ?>')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
                     </div>
-                    <div class="banner-stat">
-                        <span class="number"><?php echo $pending_records; ?></span>
-                        <span class="label">Pending Records</span>
+                    <div class="blockchain-item">
+                        <label><i class="fas fa-file-medical"></i> Medical Record System</label>
+                        <div class="blockchain-address">
+                            <?php echo htmlspecialchars($blockchainConfig['medicalRecord']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $blockchainConfig['medicalRecord']; ?>')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Statistics Cards -->
-            <div class="stats-container fade-in">
+            <div class="stats-container">
                 <div class="stat-card patients">
-                    <div class="stat-icon patients">
+                    <div class="stat-icon">
                         <i class="fas fa-user-injured"></i>
                     </div>
-                    <div class="stat-info">
-                        <h3><?php echo $total_patients; ?></h3>
-                        <p>Total Patients</p>
-                        <span class="stat-trend trend-up">+<?php echo $today_patients; ?> today</span>
-                    </div>
+                    <div class="stat-value"><?php echo $total_patients; ?></div>
+                    <div class="stat-label">Total Patients</div>
                 </div>
-
-                <div class="stat-card today">
-                    <div class="stat-icon today">
-                        <i class="fas fa-calendar-day"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3><?php echo $today_patients; ?></h3>
-                        <p>New Patients Today</p>
-                        <span class="stat-trend trend-up">Active</span>
-                    </div>
-                </div>
-
+                
                 <div class="stat-card appointments">
-                    <div class="stat-icon appointments">
+                    <div class="stat-icon">
                         <i class="fas fa-calendar-check"></i>
                     </div>
-                    <div class="stat-info">
-                        <h3><?php echo $today_appointments; ?></h3>
-                        <p>Today's Appointments</p>
-                        <span class="stat-trend trend-up">Scheduled</span>
+                    <div class="stat-value"><?php echo $total_appointments; ?></div>
+                    <div class="stat-label">Total Appointments</div>
+                </div>
+                
+                <div class="stat-card pending">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $pending_appointments; ?></div>
+                    <div class="stat-label">Pending Appointments</div>
+                </div>
+                
+                <div class="stat-card blockchain">
+                    <div class="stat-icon">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $patients_with_blockchain; ?></div>
+                    <div class="stat-label">Patients on Blockchain</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Sections -->
+            <div class="dashboard-sections">
+                <!-- Recent Patients -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3><i class="fas fa-user-injured"></i> Recent Patients</h3>
+                        <a href="doctor_appoinment.php">View All</a>
+                    </div>
+                    <div class="patient-list">
+                        <?php if (count($recent_patients) > 0): ?>
+                            <?php foreach ($recent_patients as $patient): ?>
+                                <div class="patient-item">
+                                    <div class="patient-avatar">
+                                        <?php echo strtoupper(substr($patient['patientName'], 0, 1)); ?>
+                                    </div>
+                                    <div class="patient-info">
+                                        <div class="patient-name"><?php echo htmlspecialchars($patient['patientName']); ?></div>
+                                        <div class="patient-details">
+                                            <?php echo $patient['appointment_count']; ?> appointment(s)
+                                            <?php if (!empty($patient['last_visit'])): ?>
+                                                • Last visit: <?php echo date('M j, Y', strtotime($patient['last_visit'])); ?>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="patient-actions">
+                                        <a href="add_medical.php?patientId=<?php echo $patient['patientsId']; ?>" class="btn btn-primary">
+                                            <i class="fas fa-file-medical"></i>
+                                        </a>
+                                        <?php if (!empty($patient['blockchain_address'])): ?>
+                                            <button class="btn btn-blockchain" onclick="viewPatientBlockchain('<?php echo $patient['blockchain_address']; ?>', '<?php echo htmlspecialchars($patient['patientName']); ?>')">
+                                                <i class="fas fa-link"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-user-injured"></i>
+                                <p>No patients found</p>
+                                <p class="text-muted">Patients will appear here once they book appointments with you.</p>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
-                <div class="stat-card records">
-                    <div class="stat-icon records">
-                        <i class="fas fa-file-medical"></i>
+                <!-- Recent Activity -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                        <a href="doctor_calender.php">View All</a>
                     </div>
-                    <div class="stat-info">
-                        <h3><?php echo $pending_records; ?></h3>
-                        <p>Pending Records</p>
-                        <span class="stat-trend trend-down">Needs attention</span>
+                    <div class="activity-list">
+                        <?php if (count($recent_activity) > 0): ?>
+                            <?php foreach ($recent_activity as $activity): ?>
+                                <div class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-calendar"></i>
+                                    </div>
+                                    <div class="activity-details">
+                                        <div class="activity-title">
+                                            Appointment with <?php echo htmlspecialchars($activity['patientName']); ?>
+                                        </div>
+                                        <div class="activity-time">
+                                            <?php echo date('M j, Y', strtotime($activity['appointment_date'])); ?> 
+                                            at <?php echo date('g:i A', strtotime($activity['appointment_time'])); ?>
+                                            • <span class="status-badge"><?php echo $activity['status']; ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-history"></i>
+                                <p>No recent activity</p>
+                                <p class="text-muted">Appointment activities will appear here.</p>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
 
-            <!-- Dashboard Grid -->
-            <div class="dashboard-grid">
-                <!-- Left Column -->
-                <div class="left-column">
-                    <!-- Recent Patients Section -->
-                    <div class="dashboard-section fade-in">
-                        <div class="section-header">
-                            <h3><i class="fas fa-clock"></i> Recently Added Patients</h3>
-                            <a href="doctor_appoinment.php" class="btn">
-                                <i class="fas fa-list"></i> View All
-                            </a>
-                        </div>
-
-                        <div class="table-container">
-                            <?php if (count($recent_patients) > 0): ?>
-                                <table class="patient-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Patient</th>
-                                            <th>IC Number</th>
-                                            <th>Date Added</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($recent_patients as $patient): ?>
-                                            <tr>
-                                                <td>
-                                                    <div class="patient-info">
-                                                        <div class="patient-avatar">
-                                                            <?php echo strtoupper(substr($patient['patientName'], 0, 1)); ?>
-                                                        </div>
-                                                        <?php echo htmlspecialchars($patient['patientName']); ?>
-                                                    </div>
-                                                </td>
-                                                <td><?php echo htmlspecialchars($patient['ic_number']); ?></td>
-                                                <td><?php echo date('M j, Y', strtotime($patient['created_at'])); ?></td>
-                                                <td>
-                                                    <a href="add_medical.php?patientId=<?php echo $patient['patientsId']; ?>" class="action-btn view" title="View Medical Records">
-                                                        <i class="fas fa-file-medical"></i> Records
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            <?php else: ?>
-                                <div class="no-data">
-                                    <i class="fas fa-user-slash"></i>
-                                    <h3>No Patients Found</h3>
-                                    <p>No patient records found for your account.</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="action-card" onclick="location.href='doctor_appoinment.php'">
+                    <div class="action-icon">
+                        <i class="fas fa-user-injured"></i>
                     </div>
-
-
-                <!-- Right Column -->
-                <div class="right-column">
-                    <!-- Upcoming Appointments -->
-                    <div class="dashboard-section fade-in">
-                        <div class="section-header">
-                            <h3><i class="fas fa-calendar-alt"></i> Upcoming Appointments</h3>
-                            <a href="doctor_calender.php" class="btn btn-success">
-                                <i class="fas fa-eye"></i> View Calendar
-                            </a>
-                        </div>
-
-                        <div class="appointment-list">
-                            <?php if (count($upcoming_appointments) > 0): ?>
-                                <?php foreach ($upcoming_appointments as $appointment): ?>
-                                    <div class="appointment-item">
-                                        <div class="appointment-time">
-                                            <span class="time"><?php echo date('g:i A', strtotime($appointment['appointment_time'])); ?></span>
-                                            <span class="date"><?php echo date('M j', strtotime($appointment['appointment_date'])); ?></span>
-                                        </div>
-                                        <div class="appointment-details">
-                                            <h4><?php echo htmlspecialchars($appointment['patientName']); ?></h4>
-                                            <p><?php echo htmlspecialchars($appointment['reason']); ?></p>
-                                            <small>IC: <?php echo htmlspecialchars($appointment['ic_number']); ?></small>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <div class="no-data">
-                                    <i class="fas fa-calendar-times"></i>
-                                    <h3>No Upcoming Appointments</h3>
-                                    <p>Schedule new appointments to see them here.</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                    <div class="action-title">Manage Patients</div>
+                    <div class="action-description">View and manage all your patients</div>
+                </div>
+                
+                <div class="action-card" onclick="location.href='doctor_calender.php'">
+                    <div class="action-icon">
+                        <i class="fas fa-calendar-plus"></i>
                     </div>
-
-                    <!-- Quick Actions -->
-                    <div class="dashboard-section fade-in">
-                        <div class="section-header">
-                            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-                        </div>
-                        <div class="quick-actions">
-                            <a href="patients_register.php" class="quick-action-btn">
-                                <i class="fas fa-user-plus"></i>
-                                <span>Add Patient</span>
-                            </a>
-                            <a href="doctor_calender.php" class="quick-action-btn">
-                                <i class="fas fa-calendar-plus"></i>
-                                <span>Schedule</span>
-                            </a>
-                            <a href="doctor_appoinment.php" class="quick-action-btn">
-                                <i class="fas fa-list"></i>
-                                <span>All Patients</span>
-                            </a>
-                            <a href="add_medical.php" class="quick-action-btn">
-                                <i class="fas fa-file-medical"></i>
-                                <span>Medical Records</span>
-                            </a>
-                        </div>
+                    <div class="action-title">Appointments</div>
+                    <div class="action-description">Schedule and manage appointments</div>
+                </div>
+                
+                <div class="action-card" onclick="location.href='#'">
+                    <div class="action-icon">
+                        <i class="fas fa-file-medical"></i>
                     </div>
+                    <div class="action-title">Medical Records</div>
+                    <div class="action-description">Add and view medical records</div>
+                </div>
+                
+                <div class="action-card" onclick="showBlockchainInfo()">
+                    <div class="action-icon">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <div class="action-title">Blockchain</div>
+                    <div class="action-description">View blockchain network info</div>
                 </div>
             </div>
         </main>
     </div>
 
     <script>
-        // Patient Growth Chart
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('patientGrowthChart').getContext('2d');
-            const patientGrowthChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    datasets: [{
-                        label: 'New Patients',
-                        data: [12, 19, 15, 25, 22, 30, 28, 35, 32, 40, 38, 45],
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleFont: {
-                                size: 14
-                            },
-                            bodyFont: {
-                                size: 13
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            },
-                            ticks: {
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        }
-                    }
-                }
+        // Copy to clipboard function
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Copied to clipboard: ' + text);
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Address copied to clipboard: ' + text);
             });
-
-            // Add fade-in animation to all dashboard sections
-            const elements = document.querySelectorAll('.fade-in');
-            elements.forEach((el, index) => {
-                el.style.animationDelay = `${index * 0.1}s`;
-            });
-
-            // Auto-refresh dashboard every 5 minutes
-            setTimeout(() => {
-                window.location.reload();
-            }, 300000); // 5 minutes
-        });
-
-        // Simple notification system
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db'};
-                color: white;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                z-index: 1000;
-                animation: slideIn 0.3s ease-out;
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 5000);
         }
 
-        // Check if there are pending records and show notification
-        <?php if ($pending_records > 0): ?>
-        setTimeout(() => {
-            showNotification('You have <?php echo $pending_records; ?> pending medical records that need attention.', 'warning');
-        }, 2000);
-        <?php endif; ?>
+        // View patient blockchain info
+        function viewPatientBlockchain(address, patientName) {
+            alert('Patient: ' + patientName + '\nBlockchain Address: ' + address + '\n\nThis patient is registered on the blockchain network.');
+        }
 
-        <?php if ($today_appointments > 0): ?>
-        setTimeout(() => {
-            showNotification('You have <?php echo $today_appointments; ?> appointments scheduled for today.', 'info');
-        }, 3000);
-        <?php endif; ?>
+        // Show blockchain info
+        function showBlockchainInfo() {
+            alert('Blockchain Network Information:\n\n' +
+                  'Network: <?php echo $blockchainConfig['network']; ?>\n' +
+                  'Patient Record System: <?php echo $blockchainConfig['patientRecordSystem']; ?>\n' +
+                  'Medical Record System: <?php echo $blockchainConfig['medicalRecord']; ?>\n' +
+                  'RPC URL: <?php echo $blockchainConfig['rpcUrl']; ?>');
+        }
     </script>
 </body>
 </html>
-<?php
-// Flush the output buffer
-ob_end_flush();
-?>

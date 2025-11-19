@@ -588,14 +588,6 @@ $current_login_type = $_POST['login_type'] ?? 'doctor';
                     </div>
                 </div>
                 
-                <div class="remember-forgot">
-                    <div class="remember-me">
-                        <input type="checkbox" id="remember" name="remember">
-                        <label for="remember">Remember me</label>
-                    </div>
-                    <a href="forgot_password.php" class="forgot-password">Forgot password?</a>
-                </div>
-                
                 <button type="submit" class="login-btn" id="loginBtn">
                     Sign In as <?php echo ucfirst($current_login_type); ?>
                 </button>
@@ -620,13 +612,6 @@ $current_login_type = $_POST['login_type'] ?? 'doctor';
                 </div>
             </div>
             
-            <div class="register-link">
-                <?php if ($current_login_type === 'doctor'): ?>
-                    Don't have an account? <a href="doctor_register.php">Register here</a>
-                <?php else: ?>
-                    Need help? <a href="contact_support.php">Contact Support</a>
-                <?php endif; ?>
-            </div>
         </div>
     </div>
 

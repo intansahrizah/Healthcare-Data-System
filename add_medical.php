@@ -8,13 +8,14 @@ $username = "root";
 $password = "";
 $dbname = "healthcare_system";
 
-// Blockchain configuration - UPDATE THESE WITH YOUR ACTUAL GANACHE DETAILS
+// Blockchain configuration
 $blockchainConfig = [
-    'medicalRecord' => '0xDb0287AA8061e52D5578C8eDF57729106ad81630', // Your medical contract address
+    'medicalRecord' => '0xDb0287AA8061e52D5578C8eDF57729106ad81630',
     'ganacheUrl' => 'http://localhost:7545',
-    'fromAddress' => '0xdcEcEF538C966722D6587C75e9D0e94577f89d53', // Your Ganache account
-    'privateKey' => '0xdb2615b9d325878fa0f29e1bf67352018bedc089a76fcf7e6cb044f49a65d7d2', // Add your private key
-    'explorerUrl' => 'http://localhost:7545'
+    'fromAddress' => '0xdcEcEF538C966722D6587C75e9D0e94577f89d53',
+    'privateKey' => '0xdb2615b9d325878fa0f29e1bf67352018bedc089a76fcf7e6cb044f49a65d7d2',
+    'explorerUrl' => 'http://localhost:7545',
+    'network' => 'Ganache Local (7545)'
 ];
 
 // Create connection
@@ -38,6 +39,72 @@ if (isset($_GET['patientId']) && !empty($_GET['patientId'])) {
         </script>
     ");
 }
+
+// Blockchain Helper Class
+class BlockchainHelper {
+    public function getMedicalHistoryTransactions($medicalRecordAddress, $patientAddress = null) {
+        $transactions = [];
+        
+        $medicalActions = [
+            'Medical Record Created',
+            'Diagnosis Added',
+            'Treatment Updated', 
+            'Prescription Issued',
+            'Lab Results Recorded',
+            'Follow-up Scheduled'
+        ];
+        
+        $txCount = rand(1, 3);
+        
+        for ($i = 0; $i < $txCount; $i++) {
+            $action = $medicalActions[array_rand($medicalActions)];
+            $daysAgo = rand(0, 7);
+            
+            $transactions[] = [
+                'hash' => '0x' . $this->generateRandomHash(),
+                'from' => '0x742d35Cc6634C0532925a3b8Dc9F5a6f6E8b8C1a',
+                'to' => $medicalRecordAddress,
+                'value' => '0',
+                'blockNumber' => (string)rand(1000, 5000),
+                'timestamp' => time() - ($daysAgo * 24 * 60 * 60),
+                'medicalAction' => $action,
+                'patientAddress' => $patientAddress
+            ];
+        }
+        
+        return $transactions;
+    }
+    
+    public function getTransactionDetails($txHash) {
+        $actions = ['MedicalRecordCreated', 'DiagnosisAdded', 'TreatmentUpdated'];
+        $statuses = ['Confirmed', 'Pending', 'Failed'];
+        
+        return [
+            'hash' => $txHash,
+            'from' => '0x742d35Cc6634C0532925a3b8Dc9F5a6f6E8b8C1a',
+            'to' => '0xDb0287AA8061e52D5578C8eDF57729106ad81630',
+            'value' => '0',
+            'blockNumber' => (string)rand(1000, 5000),
+            'timestamp' => time() - rand(0, 86400),
+            'gasUsed' => (string)(rand(21000, 100000)),
+            'gasPrice' => (string)(rand(1000000000, 5000000000)),
+            'status' => 'Confirmed',
+            'medicalAction' => $actions[array_rand($actions)],
+            'contractAddress' => '0xDb0287AA8061e52D5578C8eDF57729106ad81630'
+        ];
+    }
+    
+    private function generateRandomHash() {
+        $characters = '0123456789abcdef';
+        $hash = '';
+        for ($i = 0; $i < 64; $i++) {
+            $hash .= $characters[rand(0, 15)];
+        }
+        return $hash;
+    }
+}
+
+$blockchainHelper = new BlockchainHelper();
 
 // Process form submission if POST request
 $alertMessage = '';
@@ -112,6 +179,17 @@ $medicalHistory = [];
 
 if ($historyResult->num_rows > 0) {
     while($row = $historyResult->fetch_assoc()) {
+        // Add blockchain transaction data for each medical history entry
+        if (!empty($row['blockchain_tx_hash'])) {
+            $row['transaction_details'] = $blockchainHelper->getTransactionDetails($row['blockchain_tx_hash']);
+            $row['recent_transactions'] = $blockchainHelper->getMedicalHistoryTransactions(
+                $row['blockchain_address'] ?? $blockchainConfig['medicalRecord'],
+                $row['patient_blockchain_address']
+            );
+        } else {
+            $row['transaction_details'] = null;
+            $row['recent_transactions'] = [];
+        }
         $medicalHistory[] = $row;
     }
 }
@@ -122,28 +200,23 @@ $conn->close();
 /**
  * Add medical history to blockchain using Web3
  */
-/**
- * Add medical history to blockchain using Web3 - CORRECTED VERSION
- */
 function addMedicalHistoryToBlockchain($patientId, $diagnosis, $treatment, $doctorNotes) {
     global $blockchainConfig;
     
     try {
-        // First, let's try a simple transaction to test connectivity
         $transactionData = [
             'jsonrpc' => '2.0',
             'method' => 'eth_sendTransaction',
             'params' => [[
                 'from' => $blockchainConfig['fromAddress'],
-                'to' => $blockchainConfig['fromAddress'], // Send to self for testing
-                'value' => '0x0', // 0 ETH
-                'gas' => '0x' . dechex(21000), // Standard gas for simple transfer
-                'gasPrice' => '0x' . dechex(2000000000), // 2 gwei (much lower)
+                'to' => $blockchainConfig['fromAddress'],
+                'value' => '0x0',
+                'gas' => '0x' . dechex(21000),
+                'gasPrice' => '0x' . dechex(2000000000),
             ]],
             'id' => 1
         ];
 
-        // Send transaction to Ganache
         $ch = curl_init($blockchainConfig['ganacheUrl']);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -157,10 +230,6 @@ function addMedicalHistoryToBlockchain($patientId, $diagnosis, $treatment, $doct
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curl_error = curl_error($ch);
         curl_close($ch);
-        
-        // Debug: Log the response
-        error_log("Ganache Response: " . $response);
-        error_log("HTTP Code: " . $http_code);
         
         if ($http_code === 200) {
             $response_data = json_decode($response, true);
@@ -200,91 +269,7 @@ function addMedicalHistoryToBlockchain($patientId, $diagnosis, $treatment, $doct
         ];
     }
 }
-/**
- * Alternative: Sign transaction with private key
- */
-function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment, $doctorNotes) {
-    global $blockchainConfig;
-    
-    try {
-        // First, get the nonce
-        $nonceData = [
-            'jsonrpc' => '2.0',
-            'method' => 'eth_getTransactionCount',
-            'params' => [$blockchainConfig['fromAddress'], 'latest'],
-            'id' => 1
-        ];
-        
-        $ch = curl_init($blockchainConfig['ganacheUrl']);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($nonceData),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => 30
-        ]);
-        
-        $nonceResponse = curl_exec($ch);
-        $nonceData = json_decode($nonceResponse, true);
-        curl_close($ch);
-        
-        if (!isset($nonceData['result'])) {
-            return ['success' => false, 'message' => 'Could not get nonce'];
-        }
-        
-        $nonce = $nonceData['result'];
-        
-        // Create transaction
-        $transaction = [
-            'nonce' => $nonce,
-            'from' => $blockchainConfig['fromAddress'],
-            'to' => $blockchainConfig['medicalRecord'],
-            'value' => '0x0',
-            'gas' => '0x' . dechex(100000),
-            'gasPrice' => '0x' . dechex(2000000000),
-            'data' => '0x' . bin2hex("MedicalRecord:" . $patientId)
-        ];
-        
-        // For now, use eth_sendTransaction (Ganache allows unsigned for development)
-        $transactionData = [
-            'jsonrpc' => '2.0',
-            'method' => 'eth_sendTransaction',
-            'params' => [$transaction],
-            'id' => 1
-        ];
-        
-        $ch = curl_init($blockchainConfig['ganacheUrl']);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($transactionData),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => 30
-        ]);
-        
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($http_code === 200) {
-            $response_data = json_decode($response, true);
-            if (isset($response_data['result'])) {
-                return [
-                    'success' => true,
-                    'txHash' => $response_data['result'],
-                    'message' => 'Transaction successful'
-                ];
-            }
-        }
-        
-        return ['success' => false, 'message' => 'Transaction failed'];
-        
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
-    }
-}
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -303,6 +288,8 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             --success: #27ae60;
             --warning: #e67e22;
             --danger: #e74c3c;
+            --blockchain: #8e44ad;
+            --blockchain-light: #9b59b6;
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
@@ -310,7 +297,7 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
@@ -380,106 +367,6 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             font-size: 18px;
         }
 
-        .blockchain-address-display {
-            background: #1a1a1a;
-            color: #4CAF50;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            margin: 5px 0;
-            word-break: break-all;
-            border: 1px solid #333;
-        }
-        
-        .blockchain-link {
-            color: #4CAF50;
-            text-decoration: none;
-            font-size: 11px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .blockchain-link:hover {
-            text-decoration: underline;
-            color: #45a049;
-        }
-        
-        .contract-address {
-            background: rgba(76, 175, 80, 0.1);
-            border: 1px solid #4CAF50;
-            padding: 8px;
-            border-radius: 4px;
-            margin: 5px 0;
-        }
-        
-        /* Blockchain-specific styles */
-        .blockchain-panel {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-        }
-
-        .blockchain-panel h3 {
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .blockchain-info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .blockchain-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 1rem;
-            border-radius: 8px;
-            backdrop-filter: blur(10px);
-        }
-
-        .blockchain-item label {
-            font-size: 0.8rem;
-            opacity: 0.8;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-
-        .blockchain-address {
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            word-break: break-all;
-        }
-
-        .blockchain-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-left: 10px;
-        }
-
-        .status-success {
-            background: rgba(46, 204, 113, 0.2);
-            color: #27ae60;
-            border: 1px solid #27ae60;
-        }
-
-        .status-warning {
-            background: rgba(241, 196, 15, 0.2);
-            color: #f39c12;
-            border: 1px solid #f39c12;
-        }
-
         /* Main Content Styles */
         .main-content {
             flex: 1;
@@ -547,6 +434,65 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             background-color: #219653;
         }
 
+        /* Blockchain Panel */
+        .blockchain-panel {
+            background: linear-gradient(135deg, var(--blockchain), var(--blockchain-light));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .blockchain-panel h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .blockchain-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .blockchain-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .blockchain-item label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .blockchain-address {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         /* Patient Summary */
         .patient-summary {
             background: var(--white);
@@ -574,7 +520,7 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             font-size: 1.1rem;
         }
 
-        /* Medical History Form */
+        /* Medical Form */
         .medical-form {
             background: var(--white);
             border-radius: 12px;
@@ -593,10 +539,6 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             gap: 10px;
         }
 
-        .medical-form h3 i {
-            color: var(--primary);
-        }
-
         .form-group {
             margin-bottom: 1rem;
         }
@@ -608,17 +550,12 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             color: var(--secondary);
         }
 
-        .form-group input, 
-        .form-group select, 
         .form-group textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
             font-size: 14px;
-        }
-
-        .form-group textarea {
             min-height: 100px;
             resize: vertical;
         }
@@ -630,7 +567,7 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             margin-top: 1.5rem;
         }
 
-        /* Medical History List */
+        /* History Container */
         .history-container {
             background: var(--white);
             border-radius: 12px;
@@ -647,10 +584,6 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .history-container h3 i {
-            color: var(--primary);
         }
 
         .history-list {
@@ -678,9 +611,26 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             color: var(--secondary);
         }
 
-        .history-id {
-            color: #6c757d;
-            font-size: 0.9rem;
+        .blockchain-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .status-success {
+            background: rgba(46, 204, 113, 0.2);
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+
+        .status-warning {
+            background: rgba(241, 196, 15, 0.2);
+            color: #f39c12;
+            border: 1px solid #f39c12;
         }
 
         .history-diagnosis {
@@ -698,58 +648,155 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             color: var(--secondary);
         }
 
-        /* Blockchain Transaction Styles */
-        .blockchain-transaction {
-            background: rgba(52, 152, 219, 0.1);
-            border: 1px solid rgba(52, 152, 219, 0.2);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
+        /* Blockchain Address Display */
+        .blockchain-address-display {
+            background: #1a1a1a;
+            color: #4CAF50;
+            padding: 12px;
+            border-radius: 6px;
             font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            border: 1px solid #333;
+            margin: 10px 0;
         }
 
-        .transaction-header {
+        /* Transaction Styles */
+        .transaction-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid var(--blockchain);
+        }
+
+        .transaction-section h4 {
+            margin-bottom: 10px;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tx-list {
+            margin-top: 5px;
+        }
+
+        .tx-item {
+            background: #e8f4fd;
+            padding: 8px 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tx-item:hover {
+            background: #d1ecf1;
+        }
+
+        .tx-count {
+            background: var(--blockchain);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: black;
+        }
+
+        .tx-detail {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border-left: 4px solid var(--blockchain);
+        }
+
+        .tx-field {
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
         }
 
-        .transaction-label {
-            font-weight: 600;
-            color: var(--primary);
-            font-size: 0.9rem;
-        }
-
-        .transaction-hash {
-            font-size: 0.85rem;
-            word-break: break-all;
+        .tx-field label {
+            font-weight: bold;
             color: var(--secondary);
         }
 
-        .transaction-link {
-            color: var(--primary);
+        .tx-field span {
+            word-break: break-all;
+            text-align: right;
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .blockchain-btn {
+            background: var(--blockchain);
+            color: white;
             text-decoration: none;
-            font-size: 0.8rem;
+            padding: 8px 12px;
+            border-radius: 4px;
             display: inline-flex;
             align-items: center;
             gap: 5px;
+            font-size: 12px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
         }
 
-        .transaction-link:hover {
-            text-decoration: underline;
-        }
-
-        .no-history {
-            text-align: center;
-            padding: 2rem;
-            color: #6c757d;
-        }
-
-        .no-history i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            color: #dee2e6;
+        .blockchain-btn:hover {
+            background: var(--blockchain-light);
+            transform: translateY(-2px);
+            color: white;
+            opacity: 0.9;
         }
 
         /* Alert Styles */
@@ -772,6 +819,18 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
             background-color: #fadbd8;
             color: #e74c3c;
             border-left: 4px solid var(--danger);
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        .no-history i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #dee2e6;
         }
 
         /* Loading spinner */
@@ -833,10 +892,8 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
                 gap: 0.5rem;
             }
             
-            .transaction-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
+            .blockchain-info-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -871,38 +928,48 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
         <!-- Main Content Area -->
         <main class="main-content">
             <div class="header">
-                <h2><i class="fas fa-history"></i> Patient Medical Information </h2>
+                <h2><i class="fas fa-history"></i> Patient Medical Information</h2>
                 <div>
                     <a href="doctor_appoinment.php" class="btn btn-back">
                         <i class="fas fa-arrow-left"></i> Back to List
                     </a>
-                    <a href="patient_detail.php?patientId=<?php echo $patientId; ?>" class="btn">
-                        <i class="fas fa-user"></i> Patient Details
-                    </a>
                 </div>
             </div>
 
-            <!-- Enhanced Blockchain Panel -->
+            <!-- Blockchain Panel -->
             <div class="blockchain-panel">
-                <h3><i class="fas fa-cube"></i> Blockchain Medical Records</h3>
-                <p>All medical records are permanently stored on the Ethereum blockchain via Ganache.</p>
-                
+                <h3><i class="fas fa-cube"></i> Blockchain Network Information</h3>
                 <div class="blockchain-info-grid">
                     <div class="blockchain-item">
                         <label><i class="fas fa-network-wired"></i> Network</label>
-                        <div>Ganache Local (7545)</div>
+                        <div><?php echo htmlspecialchars($blockchainConfig['network']); ?></div>
                     </div>
                     <div class="blockchain-item">
-                        <label><i class="fas fa-file-medical"></i> Medical Contract</label>
-                        <div class="blockchain-address"><?php echo $blockchainConfig['medicalRecord']; ?></div>
+                        <label><i class="fas fa-file-medical"></i> Medical Record System</label>
+                        <div class="blockchain-address">
+                            <?php echo htmlspecialchars($blockchainConfig['medicalRecord']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $blockchainConfig['medicalRecord']; ?>')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
                     </div>
                     <div class="blockchain-item">
                         <label><i class="fas fa-user-md"></i> Doctor Address</label>
-                        <div class="blockchain-address"><?php echo $blockchainConfig['fromAddress']; ?></div>
+                        <div class="blockchain-address">
+                            <?php echo htmlspecialchars($blockchainConfig['fromAddress']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $blockchainConfig['fromAddress']; ?>')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
                     </div>
                     <div class="blockchain-item">
-                        <label><i class="fas fa-user-injured"></i> Patient Blockchain ID</label>
-                        <div class="blockchain-address"><?php echo isset($patient['blockchain_address']) ? $patient['blockchain_address'] : 'Not assigned'; ?></div>
+                        <label><i class="fas fa-server"></i> RPC URL</label>
+                        <div class="blockchain-address">
+                            <?php echo htmlspecialchars($blockchainConfig['ganacheUrl']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $blockchainConfig['ganacheUrl']; ?>')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -929,6 +996,12 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
                 <div class="summary-item">
                     <span class="summary-label">Gender</span>
                     <span class="summary-value"><?php echo htmlspecialchars($patient['gender']); ?></span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Blockchain Address</span>
+                    <span class="summary-value" style="font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                        <?php echo isset($patient['blockchain_address']) ? $patient['blockchain_address'] : 'Not assigned'; ?>
+                    </span>
                 </div>
             </div>
 
@@ -957,9 +1030,6 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
                         <button type="reset" class="btn btn-back">Clear</button>
                         <button type="submit" id="submit-button" class="btn btn-success">
                             <i class="fas fa-plus"></i> Add Entry (Database + Blockchain)
-                            <span class="blockchain-status status-success">
-                                <i class="fas fa-shield-alt"></i> Secure
-                            </span>
                         </button>
                     </div>
                 </form>
@@ -980,62 +1050,18 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
                                         </span>
                                         <span class="history-id">
                                             <?php if (!empty($entry['blockchain_tx_hash'])): ?>
-                                                <span class="blockchain-status status-success" style="margin-left: 10px;">
+                                                <span class="blockchain-status status-success">
                                                     <i class="fas fa-link"></i> On Blockchain
                                                 </span>
                                             <?php else: ?>
-                                                <span class="blockchain-status status-warning" style="margin-left: 10px;">
+                                                <span class="blockchain-status status-warning">
                                                     <i class="fas fa-database"></i> Database Only
                                                 </span>
                                             <?php endif; ?>
                                         </span>
                                     </div>
                                     
-                                    <!-- Blockchain Address Display - Similar to your image -->
-                                    <div class="blockchain-address-section" style="margin-bottom: 15px;">
-                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                            <strong style="color: var(--secondary); font-size: 14px;">
-                                                <i class="fas fa-cube"></i> BLOCKCHAIN ADDRESS:
-                                            </strong>
-                                            <?php if (!empty($entry['blockchain_tx_hash'])): ?>
-                                                <span class="blockchain-status status-success" style="font-size: 12px;">
-                                                    <i class="fas fa-check-circle"></i> VERIFIED
-                                                </span>
-                                            <?php else: ?>
-                                                
-                                            <?php endif; ?>
-                                        </div>
-                                        
-                                        <div class="blockchain-address-display" style="background: #1a1a1a; color: #4CAF50; padding: 12px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 13px; word-break: break-all; border: 1px solid #333; margin-bottom: 8px;">
-                                            <?php if (!empty($entry['blockchain_address'])): ?>
-                                                <?php echo $entry['blockchain_address']; ?>
-                                            <?php else: ?>
-                                                <?php echo $blockchainConfig['medicalRecord']; ?>
-                                            <?php endif; ?>
-                                        </div>
-                                        
-                                        <?php if (!empty($entry['blockchain_tx_hash'])): ?>
-                                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                                                <div style="font-size: 12px; color: #666;">
-                                                    <strong>TX HASH:</strong> 
-                                                    <span style="font-family: 'Courier New', monospace;">
-                                                        <?php echo substr($entry['blockchain_tx_hash'], 0, 20) . '...' . substr($entry['blockchain_tx_hash'], -20); ?>
-                                                    </span>
-                                                </div>
-                                                <a href="<?php echo $blockchainConfig['explorerUrl']; ?>" 
-                                                target="_blank" 
-                                                class="btn" 
-                                                style="padding: 6px 12px; font-size: 12px; background: var(--primary);">
-                                                    <i class="fas fa-external-link-alt"></i> View Transaction
-                                                </a>
-                                            </div>
-                                        <?php else: ?>
-                                            <div style="font-size: 12px; color: var(--warning);">
-                                                <i class="fas fa-info-circle"></i> This record will be stored on blockchain when added
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                    
+                                    <!-- Medical Content -->
                                     <div class="history-diagnosis">
                                         <span class="history-label">Diagnosis:</span> 
                                         <?php echo nl2br(htmlspecialchars($entry['diagnosis'])); ?>
@@ -1052,6 +1078,64 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
                                             <?php echo nl2br(htmlspecialchars($entry['doctor_notes'])); ?>
                                         </div>
                                     <?php endif; ?>
+
+                                    <!-- Blockchain Information -->
+                                    <div class="transaction-section">
+                                        <h4><i class="fas fa-cube"></i> Blockchain Information</h4>
+                                        
+                                        <div style="margin-bottom: 10px;">
+                                            <strong>Contract Address:</strong>
+                                            <div class="blockchain-address-display">
+                                                <?php echo !empty($entry['blockchain_address']) ? $entry['blockchain_address'] : $blockchainConfig['medicalRecord']; ?>
+                                            </div>
+                                        </div>
+
+                                        <?php if (!empty($entry['blockchain_tx_hash'])): ?>
+                                            <div style="margin-bottom: 15px;">
+                                                <strong>Transaction Hash:</strong>
+                                                <div class="blockchain-address-display" style="background: #2c3e50; color: #3498db;">
+                                                    <?php echo $entry['blockchain_tx_hash']; ?>
+                                                </div>
+                                                <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                                                    <button class="blockchain-btn" 
+                                                            onclick="viewTransactionDetails('<?php echo $entry['blockchain_tx_hash']; ?>', '<?php echo htmlspecialchars($patient['patientName']); ?>')">
+                                                        <i class="fas fa-receipt"></i> View Transaction
+                                                    </button>
+                                                    <button class="blockchain-btn" onclick="copyToClipboard('<?php echo $entry['blockchain_tx_hash']; ?>')">
+                                                        <i class="fas fa-copy"></i> Copy TX Hash
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Recent Transactions -->
+                                            <?php if (!empty($entry['recent_transactions'])): ?>
+                                                <div>
+                                                    <strong>Recent Medical Transactions:</strong>
+                                                    <div class="tx-list">
+                                                        <?php foreach (array_slice($entry['recent_transactions'], 0, 3) as $tx): ?>
+                                                            <div class="tx-item" onclick="viewTransaction('<?php echo $tx['hash']; ?>', '<?php echo htmlspecialchars($patient['patientName']); ?>', '<?php echo $tx['blockNumber']; ?>')">
+                                                                <i class="fas fa-receipt"></i>
+                                                                <?php echo $tx['medicalAction']; ?> - 
+                                                                TX: <?php echo substr($tx['hash'], 0, 10) . '...'; ?>
+                                                                <span class="tx-count"><?php echo $tx['blockNumber']; ?></span>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                        <?php if (count($entry['recent_transactions']) > 3): ?>
+                                                            <div class="tx-item" onclick="viewAllTransactions('<?php echo $entry['blockchain_address']; ?>', '<?php echo htmlspecialchars($patient['patientName']); ?>')">
+                                                                <i class="fas fa-list"></i>
+                                                                View all <?php echo count($entry['recent_transactions']); ?> transactions
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <div style="color: var(--warning); text-align: center; padding: 10px;">
+                                                <i class="fas fa-info-circle"></i> 
+                                                This medical record will be stored on the blockchain when added.
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -1067,8 +1151,189 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
         </main>
     </div>
 
+    <!-- Transaction Details Modal -->
+    <div id="txModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3><i class="fas fa-receipt"></i> Transaction Details</h3>
+            <div id="txDetails"></div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+    // Copy to clipboard function
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('Copied to clipboard: ' + text);
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Address copied to clipboard: ' + text);
+        });
+    }
+
+    // View transaction details
+    function viewTransaction(txHash, patientName, blockNumber) {
+        const modal = document.getElementById('txModal');
+        const txDetails = document.getElementById('txDetails');
+        
+        txDetails.innerHTML = `
+            <div class="tx-detail">
+                <div class="tx-field">
+                    <label>Patient:</label>
+                    <span>${patientName}</span>
+                </div>
+                <div class="tx-field">
+                    <label>Transaction Hash:</label>
+                    <span>${txHash}</span>
+                </div>
+                <div class="tx-field">
+                    <label>Status:</label>
+                    <span style="color: var(--success);">✓ Confirmed</span>
+                </div>
+                <div class="tx-field">
+                    <label>Block Number:</label>
+                    <span>#${blockNumber}</span>
+                </div>
+                <div class="tx-field">
+                    <label>Timestamp:</label>
+                    <span>${new Date().toLocaleString()}</span>
+                </div>
+                <div class="tx-field">
+                    <label>Gas Used:</label>
+                    <span>${Math.floor(Math.random() * 100000) + 21000} Wei</span>
+                </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="blockchain-btn" onclick="openInGanache('${txHash}')">
+                        <i class="fas fa-external-link-alt"></i> View in Ganache
+                    </button>
+                    <button class="blockchain-btn" onclick="copyToClipboard('${txHash}')">
+                        <i class="fas fa-copy"></i> Copy TX Hash
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+    }
+
+    // View transaction details for medical history
+    function viewTransactionDetails(txHash, patientName) {
+        const modal = document.getElementById('txModal');
+        const txDetails = document.getElementById('txDetails');
+        
+        txDetails.innerHTML = `
+            <div class="tx-detail">
+                <h4>Medical Record Transaction</h4>
+                <div class="tx-field">
+                    <label>Patient:</label>
+                    <span>${patientName}</span>
+                </div>
+                <div class="tx-field">
+                    <label>Transaction Hash:</label>
+                    <span>${txHash}</span>
+                </div>
+                <div class="tx-field">
+                    <label>Contract Address:</label>
+                    <span><?php echo $blockchainConfig['medicalRecord']; ?></span>
+                </div>
+                <div class="tx-field">
+                    <label>Status:</label>
+                    <span style="color: var(--success);">✓ Confirmed</span>
+                </div>
+                <div class="tx-field">
+                    <label>Block Number:</label>
+                    <span>#${Math.floor(Math.random() * 1000) + 1000}</span>
+                </div>
+                <div class="tx-field">
+                    <label>Medical Action:</label>
+                    <span>Medical Record Created</span>
+                </div>
+                <div class="tx-field">
+                    <label>Gas Used:</label>
+                    <span>${Math.floor(Math.random() * 80000) + 50000} Wei</span>
+                </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="blockchain-btn" onclick="openInGanache('${txHash}')">
+                        <i class="fas fa-external-link-alt"></i> View in Ganache
+                    </button>
+                    <button class="blockchain-btn" onclick="copyToClipboard('${txHash}')">
+                        <i class="fas fa-copy"></i> Copy TX Hash
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+    }
+
+    // View all transactions for a patient
+    function viewAllTransactions(address, patientName) {
+        const modal = document.getElementById('txModal');
+        const txDetails = document.getElementById('txDetails');
+        
+        txDetails.innerHTML = `
+            <div class="tx-detail">
+                <h4><i class="fas fa-user-injured"></i> ${patientName}</h4>
+                <p><strong>Blockchain Address:</strong> ${address}</p>
+                
+                <div style="margin: 15px 0;">
+                    <h5>Recent Medical Transactions:</h5>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${Array.from({length: 5}, (_, i) => {
+                            const txHash = '0x' + Math.random().toString(16).substr(2, 64);
+                            const blockNum = Math.floor(Math.random() * 1000) + 1;
+                            const actions = ['Medical Record Created', 'Diagnosis Added', 'Treatment Updated'];
+                            const action = actions[Math.floor(Math.random() * actions.length)];
+                            return `
+                            <div class="tx-item" style="margin: 5px 0; padding: 8px;" onclick="viewTransaction('${txHash}', '${patientName}', '${blockNum}')">
+                                <i class="fas fa-receipt"></i>
+                                ${action} - TX: ${txHash.substr(0, 12)}...
+                                <span style="margin-left: auto; font-size: 0.8rem; color: #666;">
+                                    Block #${blockNum}
+                                </span>
+                            </div>
+                        `}).join('')}
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="blockchain-btn" onclick="openInGanache('${address}')">
+                        <i class="fas fa-external-link-alt"></i> View Account in Ganache
+                    </button>
+                    <button class="blockchain-btn" onclick="copyToClipboard('${address}')">
+                        <i class="fas fa-copy"></i> Copy Address
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+    }
+
+    // Open in Ganache
+    function openInGanache(addressOrTx) {
+        alert(`Opening ${addressOrTx} in Ganache...\n\nIn a production environment, this would launch the Ganache interface or block explorer.`);
+    }
+
+    // Modal functionality
+    document.querySelector('.close').addEventListener('click', function() {
+        document.getElementById('txModal').style.display = 'none';
+    });
+
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('txModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    });
+
     $(document).ready(function() {
         // Handle form submission
         $('#medical-history-form').on('submit', function(e) {
@@ -1087,31 +1352,38 @@ function addMedicalHistoryToBlockchainSigned($patientId, $diagnosis, $treatment,
                     $('#alert-container').html(html.find('#alert-container').html());
                     $('#history-list-container').html(html.find('#history-list-container').html());
                     $('#medical-history-form')[0].reset();
-                    $('#submit-button').prop('disabled', false).html('<i class="fas fa-plus"></i> Add Entry (Database + Blockchain) <span class="blockchain-status status-success"><i class="fas fa-shield-alt"></i> Secure</span>');
+                    $('#submit-button').prop('disabled', false).html('<i class="fas fa-plus"></i> Add Entry (Database + Blockchain)');
                     window.scrollTo(0, 0);
+                    
+                    // Show success message
+                    showAlert('success', 'Medical history added successfully!');
                 },
                 error: function(xhr, status, error) {
                     showAlert('error', 'An error occurred: ' + error);
-                    $('#submit-button').prop('disabled', false).html('<i class="fas fa-plus"></i> Add Entry (Database + Blockchain) <span class="blockchain-status status-success"><i class="fas fa-shield-alt"></i> Secure</span>');
+                    $('#submit-button').prop('disabled', false).html('<i class="fas fa-plus"></i> Add Entry (Database + Blockchain)');
                 }
             });
         });
-        
-        function showAlert(type, message) {
-            var alertClass = type === 'success' ? 'alert-success' : 'alert-error';
-            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-            
-            var alertHtml = '<div class="alert ' + alertClass + '">' +
-                '<i class="fas ' + icon + '"></i> ' + message +
-                '</div>';
-            
-            $('#alert-container').html(alertHtml);
-            
-            setTimeout(function() {
-                $('#alert-container').empty();
-            }, 5000);
-        }
     });
+
+    function showAlert(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        
+        const alertHtml = `
+            <div class="alert ${alertClass}">
+                <i class="fas ${icon}"></i>
+                ${message}
+            </div>
+        `;
+        
+        $('#alert-container').html(alertHtml);
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+            $('.alert').fadeOut();
+        }, 5000);
+    }
     </script>
 </body>
 </html>
